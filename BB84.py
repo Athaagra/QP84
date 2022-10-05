@@ -124,7 +124,7 @@ def step(action,action_history,max_moves, alice_data_counter,data1,alice_datalog
     alice_observation[(len(action_history)-1)%len(alice_observation)] = action[0]
     bob_observation = np.concatenate(([bob_has_mail], bob_datalog))
     state = (alice_observation, bob_observation)
-    render(alice_observation,bob_datalog, bob_has_mail)
+    #render(alice_observation,bob_datalog, bob_has_mail)
 	
     return state, reward, done, {'action_history':action_history},bob_key
 	
@@ -194,4 +194,47 @@ for episode in range(episodes):
 print('The simulation has been solved the environment:{}'.format(solved/episodes))
 print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(total_episodes)
+plt.title('The simulation has been solved the environment:{}'.format(solved/episodes))
+plt.show()
+
+episodes=100
+solved=0
+steps_ep=[]
+total_episodes=[]
+for episode in range(episodes):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    #def __init__(self):
+    gamma= 1
+    learning_rate=0.9
+    state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
+    q=(4,4)
+    print(state_n)
+    Q=np.zeros(q)
+    do=False
+    reward_episode=[]
+    steps=0
+    while do!=True:
+        steps+=1
+        random_values=Q[int(state_n[1][0])] + np.random.randint(2, size=(1,max_moves))/1000
+        actiona=np.argmax(random_values)
+        random_values=Q[int(abs(state_n[1][1]))] + np.random.randint(2, size=(1,max_moves))/1000
+        actionb=np.argmax(random_values)
+        action=(actiona,actionb)
+        print('This is the action {}'.format(action))
+        stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
+        print('the reward is {},the is done {}, this is the key of bob {}, this is the bitstring {}'.format(re,do,bob_key,data))
+        Q[int(state_n[1][0]),actiona]=(1-learning_rate)*Q[int(state_n[1][0]),actiona]+learning_rate * (re + gamma * max(Q[int(stat[1][0])]))
+        #print('This is the tabular {}'.format(Q))
+        reward_episode.append(re)
+        #print(Q)
+        state_n=stat
+    if reward_episode[-1]==1:
+        solved+=1
+        steps_ep.append(len(reward_episode))
+    total_episodes.append(reward_episode[-1])
+print('The simulation has been solved the environment:{}'.format(solved/episodes))
+print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
+plt.plot(total_episodes)
+plt.title('The simulation has been solved the environment:{}'.format(solved/episodes))
 plt.show()
