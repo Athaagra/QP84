@@ -191,10 +191,10 @@ for episode in range(episodes):
         solved+=1 
         steps_ep.append(len(reward_episode))
     total_episodes.append(reward_episode[-1])
-print('The simulation has been solved the environment:{}'.format(solved/episodes))
+print('The simulation has been solved the environment Belman Equation:{}'.format(solved/episodes))
 print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(total_episodes)
-plt.title('The simulation has been solved the environment:{}'.format(solved/episodes))
+plt.title('The simulation has been solved the environment Bellman Equation:{}'.format(solved/episodes))
 plt.show()
 
 episodes=100
@@ -233,10 +233,10 @@ for episode in range(episodes):
         solved+=1
         steps_ep.append(len(reward_episode))
     total_episodes.append(reward_episode[-1])
-print('The simulation has been solved the environment:{}'.format(solved/episodes))
+print('The simulation has been solved the environment Q learning:{}'.format(solved/episodes))
 print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(total_episodes)
-plt.title('The simulation has been solved the environment:{}'.format(solved/episodes))
+plt.title('The simulation has been solved the environment Q learning:{}'.format(solved/episodes))
 plt.show()
 
 
@@ -265,7 +265,7 @@ steps=[]
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
-        self.linear1 = nn.Linear(1,1)
+        self.linear1 = nn.Linear(number_of_inputs,number_of_outputs)
         
     def forward(self, x):
         output = self.linear1(x)
@@ -294,7 +294,7 @@ class QNet_Agent(object):
     def optimize(self,state,action,new_state,reward,done):
         state=Tensor(state).to(device)
         new_state=Tensor(new_state).to(device)
-        reward = Tensor(reward).to(device)
+        reward = Tensor(reward+1).to(device)
         #Q[int(state_n[1][0]),actiona]=re + gamma * max(Q[int(stat[1][0])])
         if done:
             target_value = reward
@@ -335,8 +335,8 @@ for episode in range(episodes):
         solved+=1
         steps_ep.append(len(reward_episode))
     total_episodes.append(reward_episode[-1])
-print('The simulation has been solved the environment:{}'.format(solved/episodes))
+print('The simulation has been solved the environment Neural Network:{}'.format(solved/episodes))
 print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(total_episodes)
-plt.title('The simulation has been solved the environment:{}'.format(solved/episodes))
+plt.title('The simulation has been solved the environment Neural Network:{}'.format(solved/episodes))
 plt.show()
