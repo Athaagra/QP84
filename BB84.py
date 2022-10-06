@@ -188,7 +188,7 @@ for episode in range(episodes):
         #print(Q)
         state_n=stat
     if reward_episode[-1]==1:
-        solved+=1
+        solved+=1 
         steps_ep.append(len(reward_episode))
     total_episodes.append(reward_episode[-1])
 print('The simulation has been solved the environment:{}'.format(solved/episodes))
@@ -206,7 +206,7 @@ for episode in range(episodes):
     import matplotlib.pyplot as plt
     #def __init__(self):
     gamma= 1
-    learning_rate=0.9
+    learning_rate=1
     state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
     q=(4,4)
     print(state_n)
@@ -225,6 +225,108 @@ for episode in range(episodes):
         stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
         print('the reward is {},the is done {}, this is the key of bob {}, this is the bitstring {}'.format(re,do,bob_key,data))
         Q[int(state_n[1][0]),actiona]=(1-learning_rate)*Q[int(state_n[1][0]),actiona]+learning_rate * (re + gamma * max(Q[int(stat[1][0])]))
+        #print('This is the tabular {}'.format(Q))
+        reward_episode.append(re)
+        #print(Q)
+        state_n=stat
+    if reward_episode[-1]==1:
+        solved+=1
+        steps_ep.append(len(reward_episode))
+    total_episodes.append(reward_episode[-1])
+print('The simulation has been solved the environment:{}'.format(solved/episodes))
+print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
+plt.plot(total_episodes)
+plt.title('The simulation has been solved the environment:{}'.format(solved/episodes))
+plt.show()
+
+
+import torch 
+import torch.nn as nn
+import torch.optim as optim 
+import torch.nn.functional as F 
+from torch.autograd import Variable
+
+#if gpu is to be used 
+use_cuda=torch.cuda.is_available()
+device=torch.device("cuda:0" if use_cuda else "cpu")
+FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
+LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor 
+ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
+Tensor = FloatTensor
+
+learning_rate=0.01
+num_episodes=1000
+
+number_of_inputs = 4
+number_of_outputs = 4
+egreedy=0.5
+steps=[]
+
+class NeuralNetwork(nn.Module):
+    def __init__(self):
+        super(NeuralNetwork, self).__init__()
+        self.linear1 = nn.Linear(1,1)
+        
+    def forward(self, x):
+        output = self.linear1(x)
+        return output
+
+class QNet_Agent(object):
+    def __init__(self):
+        self.nn = NeuralNetwork().to(device)
+        self.loss_func = nn.MSELoss() 
+        self.optimizer = optim.Adam(params=self.nn.parameters(), lr=learning_rate)
+    def select_action(self,state):
+         random_for_egreedy = torch.rand(1)[0]
+         if random_for_egreedy > egreedy:
+             with torch.no_grad():
+                 state=Tensor(state).to(device)
+                 action_from_nn=self.nn(state)
+                 action=torch.max(action_from_nn,0)[1]
+                 action=action.item()
+         else:
+            random_values=Q[int(state_n[1][0])] + np.random.randint(2, size=(1,max_moves))/1000
+            actiona=np.argmax(random_values)
+            random_values=Q[int(abs(state_n[1][1]))] + np.random.randint(2, size=(1,max_moves))/1000
+            actionb=np.argmax(random_values)
+            action=(actiona,actionb)
+         return action       
+    def optimize(self,state,action,new_state,reward,done):
+        state=Tensor(state).to(device)
+        new_state=Tensor(new_state).to(device)
+        reward = Tensor(reward).to(device)
+        #Q[int(state_n[1][0]),actiona]=re + gamma * max(Q[int(stat[1][0])])
+        if done:
+            target_value = reward
+        else:
+            new_state_value=self.nn(new_state).detach()
+            max_new_state_values = torch.max(new_state_value)
+            target_value=reward + gamma + max_new_state_values
+episodes=100
+solved=0
+steps_ep=[]
+total_episodes=[]
+qnet_agent=QNet_Agent()
+for episode in range(episodes):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    #def __init__(self):
+    gamma= 1
+    learning_rate=1
+    state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
+    q=(4,4)
+    print(state_n)
+    Q=np.zeros(q)
+    do=False
+    reward_episode=[]
+    steps=0
+    while do!=True:
+        steps+=1
+        print('This is the action {}'.format(action))
+        stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
+        print(stat[0],state_n[0])
+        #print('the reward is {},the is done {}, this is the key of bob {}, this is the bitstring {}'.format(re,do,bob_key,data))
+        qnet_agent.optimize(stat[0],action_h,state_n[0],re,do)
         #print('This is the tabular {}'.format(Q))
         reward_episode.append(re)
         #print(Q)
