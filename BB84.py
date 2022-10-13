@@ -634,7 +634,7 @@ HISTORY_LENGTH = 1
 D = 4#len(env.reset())*HISTORY_LENGTH
 M = 20
 K = 4  
-print('This is the D {} M {} and K {}'.format(D,M,K))
+#print('This is the D {} M {} and K {}'.format(D,M,K))
 
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
@@ -752,15 +752,16 @@ def reward_function(params):
     while not done:
         #get the action
         #print('This is the state {}'.format(state))
-        actiona = model.sample_action(state_n[0])
-        actionb = model.sample_action(state_n[0])
+        actiona = model.sample_action(state)
+        actionb = model.sample_action(state)
         action=(actiona,actionb)
         #print('This is the action {}'.format(action))
         #print('This is the action {}'.format(action))
         #perform the action
         stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
         #update total reward
-        obs=stat
+        obs=stat[0]
+        done=do
         episode_reward += re
         episode_length +=1
         #update state
@@ -769,7 +770,7 @@ def reward_function(params):
             state[-obs_dim:]=obs
         else:
             state = obs
-    return episode_reward,action
+    return episode_reward,int(''.join(map(str,action)))
     
 if __name__=='__main__':
     model = ANN(D,M,K)
