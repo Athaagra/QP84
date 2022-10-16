@@ -616,7 +616,6 @@ def mainly():
 if __name__ == '__main__':
     tot_ep=mainly()
 
-
 #import torch
 #import torch.nn as nn
 import numpy as np
@@ -625,16 +624,24 @@ import gym
 import random
 import math
 import time
-import numpy as np
+# import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 import sys
 HISTORY_LENGTH = 1  
-#hyperparameters
+# #hyperparameters
 D = 4#len(env.reset())*HISTORY_LENGTH
-M = 20
-K = 4  
+M = 50
+K = 4
+
+actions_list=[(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(2,1),(2,2)]
 #print('This is the D {} M {} and K {}'.format(D,M,K))
+print('This is the D {} M {} and K {}'.format(D,M,K))
+#def softmax(a):
+#   c = np.max(a, axis=1, keepdims=True)
+#   e = np.exp(a-c)
+#   return e/e.sum(axis=-1, keepdims=True)
+
 
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
@@ -660,17 +667,17 @@ class ANN:
             
     def forward(self, X):
         #self.f
-        #print('This is the input data X{}'.format(X[0]))
+        #print('This is the input data X{}'.format(X))
         #print('This is the w1 {}'.format(self.W2))
         #print('This is the b1 {}'.format(self.b2.shape))
-        Z = np.tanh(X.dot(self.W1)+ self.b1)
+        Z = np.tanh(np.dot(X,self.W1)+ self.b1)
         return softmax(Z.dot(self.W2)+ self.b2)
         
     def sample_action(self, x):
-        #X=np.atleast_2d(x)
-        X=x
+        X=np.atleast_2d(x)
+        #X=x
         Y=self.forward(X)
-        #print('Forward process {}'.format(P))
+        #print('Forward process {}'.format(Y))
         y=Y[0]
         return np.argmax(y)
         
@@ -709,6 +716,7 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters):
         for j in range(population_size):
             params_try = params + sigma * N[j]
             R[j],acts[j] = f(params_try)
+            #print('This is the action {}'.format(acts[j]))
         m = R.mean()
         s = R.std()+0.001
         #print('This is s {}'.format(s))
@@ -728,7 +736,7 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters):
         lr *=0.992354
         sigma += 0.7891
         print("Iter:",t, "Avg Reward: %.3f" % m, "Max:", R.max(), "Duration:",(datetime.now()-t0))
-        if m > R.max()/1.5 or R.max() > 300:
+        if m > R.max()/1.5 or R.max() > 0.9:
             actis = acts
         else:
             actis=np.zeros(population_size)
@@ -737,7 +745,7 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters):
 def reward_function(params):
     model = ANN(D, M, K)
     model.set_params(params)
-    # play one episode and return the total reward
+#     # play one episode and return the total reward
     episode_reward = 0
     episode_length = 0
     done = False
@@ -750,33 +758,36 @@ def reward_function(params):
     else:
         state = obs
     while not done:
-        #get the action
+#         #get the action
+#         #state=np.array(state)
         #print('This is the state {}'.format(state))
         actiona = model.sample_action(state)
         actionb = model.sample_action(state)
+   #     action=np.array(actions_list[action])
         action=(actiona,actionb)
         #print('This is the action {}'.format(action))
         #print('This is the action {}'.format(action))
-        #perform the action
+#         #perform the action
         stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
-        #update total reward
-        obs=stat[0]
+#         #update total reward
         done=do
+        obs=stat[0]
+# #        print(obs)
         episode_reward += re
         episode_length +=1
-        #update state
+#         #update state
         if HISTORY_LENGTH > 1:
             state = np.roll(state, -obs_dim)
             state[-obs_dim:]=obs
         else:
             state = obs
-    return episode_reward,int(''.join(map(str,action)))
-    
+    return episode_reward,actiona
+#     
 if __name__=='__main__':
     model = ANN(D,M,K)
     if len(sys.argv) > 1 and sys.argv[1] =='play':
         #play with a saved model
-        j = np.load('es_cartpole_results.npz')
+        j = np.load('es_qkprotocol_results.npz')
         best_params = np.concatenate([j['W1'].flatten(), j['b1'], j['W2'].flatten(), j['b2']])
         # in case intial shapes are not correct
         D, M =j['W1'].shape
@@ -819,15 +830,15 @@ if __name__=='__main__':
         params = model.get_params()
         best_params, rewards, actions, learn_r,sigmv,pop_s,parms = evolution_strategy(
             f=reward_function,
-            population_size=80,
+            population_size=100,
             sigma=0.1,
-            lr=0.0003,
+            lr=0.10,
             initial_params=params,
-            num_iters=450,
+            num_iters=2,
         )
             
         model.set_params(best_params)
-        np.savez('es_cartpole_results.npz',
+        np.savez('es_qkprotocol_results.npz',
                  learning_rate_v=learn_r,
                  sigmav=sigmv,
                  populat_s=pop_s,
@@ -838,10 +849,21 @@ if __name__=='__main__':
         )
         #play 5 test episodes
         #env.set_display(True)
-        state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
+        #state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
         #env.reset()
-        for t in range(0,len(actions)):
-            render()
-            stat,re,do,action_h,bob_key=step(actions[t],act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
-        for _ in range(5):
-            print("Test:", reward_function(best_params))
+        #for t in range(0,len(actions)):
+        #    render()
+        #    stat,re,do,action_h,bob_key=step(actions[t],act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
+        total_episodes=[]
+        solved=0
+        episodes=100
+        for _ in range(episodes):
+            Rew, ac=reward_function(best_params)
+            total_episodes.append(Rew)
+            if Rew>0:
+                solved+=1
+            print("Episode {} Reward per episode {}".format(_,Rew))
+    print('The simulation has been solved the environment Evolutionary Strategy:{}'.format(solved/episodes))
+    plt.plot(total_episodes)
+    plt.title('The simulation has been solved the environment Evolutionary Strategy:{}'.format(solved/episodes))
+    plt.show()
