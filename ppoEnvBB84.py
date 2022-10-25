@@ -330,8 +330,8 @@ def train_value_function(observation_buffer, return_buffer):
 
 
 # Hyperparameters of the PPO algorithm
-steps_per_epoch = 15
-epochs = 100
+steps_per_epoch = 4000
+epochs = 30
 gamma = 0.99
 clip_ratio = 0.2
 policy_learning_rate = 3e-4
@@ -372,14 +372,15 @@ value_optimizer = keras.optimizers.Adam(learning_rate=value_function_learning_ra
 state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
 observation=np.array(state_n[0])
 actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
+episode_return=0
+episode_length=0
 # Iterate over the number of epochs
 for epoch in range(epochs):
     # Initialize the sum of the returns, lengths and number of episodes for each epoch
     sum_return = 0
     sum_length = 0
     num_episodes = 0
-    episode_return=0
-    episode_length=0
+
 
     # Iterate over the steps of each epoch
     for t in range(steps_per_epoch):
@@ -425,7 +426,9 @@ for epoch in range(epochs):
             num_episodes += 1
             state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
             
-            #observation, episode_return, episode_length = env.reset(), 0, 0
+            observation=np.array(state_n[0]) 
+            episode_return=0
+            episode_length = 0
 
     # Get values from the buffer
     (
