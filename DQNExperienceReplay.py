@@ -172,18 +172,21 @@ use_cuda=torch.cuda.is_available()
 device=torch.device("cuda:0" if use_cuda else "cpu")
 Tensor = torch.Tensor
 LongTensor = torch.LongTensor
-gamma= 1
+gamma= 0.99
+seed_value=0
+torch.manual_seed(seed_value)
+random.seed(seed_value)
 #learning_rate=1
-learning_rate=0.10
+learning_rate=0.03
 number_of_inputs = 4
-number_of_outputs = 11
-replay_mem_size=10
-egreedy=0.1
-egreedy_final=0.02
+number_of_outputs = 12
+replay_mem_size=30
+egreedy=1
+egreedy_final=0.89
 egreedy_decay=500
-update_target_frequency = 10
-batch_size=32
-hidden_layer=128
+update_target_frequency = 20
+batch_size=10
+hidden_layer=64
 steps=[]
 clip_error=False
 
@@ -206,10 +209,17 @@ class ExperienceReplay(object):
             self.memory[self.position]=transition
         self.position= (self.position + 1) % self.capacity
     def sample(self, batch_size):
-        zip(*random.sample(self.memory,batch_size))
+        return zip(*random.sample(self.memory,batch_size))
     def __len__(self):
         return len(self.memory)
 class NeuralNetwork(nn.Module):
+    #def __init__(self):
+    #    super(NeuralNetwork, self).__init__()
+    #    self.linear1 = nn.Linear(number_of_inputs,number_of_outputs)
+        
+    #def forward(self, x):
+    #    output = self.linear1(x)
+    #    return output
     def __init__(self):
         super(NeuralNetwork, self).__init__()
         self.linear1 = nn.Linear(number_of_inputs,hidden_layer)
@@ -230,19 +240,21 @@ class QNet_Agent(object):
         self.update_target_counter = 0
     def select_action(self,state,epsilon):
          random_for_egreedy = torch.rand(1)[0]
-         if random_for_egreedy > egreedy:
+         if random_for_egreedy < egreedy:
              with torch.no_grad():
                  state=Tensor(state).to(device)
                  action_from_nn=self.nn(state)
                  action=torch.max(action_from_nn,0)[1]
                  actiona=action.item()
-                 action=np.array(actions_list[actiona])
+                 #print('This is torch no grad {}'.format(actiona))
+                 #action=np.array(actions_list[actiona])
                  
          else:
             random_values=Q[int(state_n[0][0])] + np.random.randint(11, size=(1,len(actions_list)))/1000
             actiona=np.argmax(random_values)
-            action=np.array(actions_list[actiona])
-         return action      
+            #print('Select a random action {}'.format(actiona))
+            #action=np.array(actions_list[actiona])
+         return actiona      
     def optimize(self):
         if (len(memory) < batch_size):
             return
@@ -250,15 +262,16 @@ class QNet_Agent(object):
         print(state,action,new_state,reward,done)
         state=Tensor(state).to(device)
         new_state=Tensor(new_state).to(device)
-        reward = Tensor(reward+1).to(device)
+        reward = Tensor(reward).to(device)
         action = LongTensor(action).to(device)
         done = Tensor(done).to(device)
         new_state_values=self.target_nn(new_state).detach()
         max_new_state_values = torch.max(new_state_values, 1)[0]
-        target_value=reward + (1- done) * gamma * max_new_state_values
-        
+        target_value=reward + gamma * max_new_state_values
+        #target_value=reward + (1- done) * gamma * max_new_state_values
+        print('This is the state {}'.format(self.nn(state).gather(1, action.unsqueeze(1)).squeeze(1)))
         predicted_value = self.nn(state).gather(1, action.unsqueeze(1)).squeeze(1)
-          
+        print('This is the target value {}'.format(predicted_value))          
         loss = self.loss_func(predicted_value, target_value)
             
         self.optimizer.zero_grad()
@@ -275,7 +288,9 @@ class QNet_Agent(object):
             
 memory=ExperienceReplay(replay_mem_size)          
 episodes=100
+cumulative_reward=[]
 solved=0
+r=0
 frames_total=0
 steps_ep=[]
 total_episodes=[]
@@ -295,10 +310,11 @@ for episode in range(episodes):
         steps+=1
         frames_total+=1
         epsilon=calculate_epsilon(frames_total)
-        action=qnet_agent.select_action(state_n[0],epsilon)
+        action_index=qnet_agent.select_action(state_n[0],epsilon)
+        action=np.array(actions_list[action_index])
         stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
         #print('This is the action {}'.format(action)) this is the key of bob {}, this is the bitstring {}'.format(re,do,bob_key,data))
-        memory.push(stat[0],action,state_n[0],re,do)
+        memory.push(stat[0],action_index,state_n[0],re,do)
         qnet_agent.optimize()
         #print('This is the tabular {}'.format(Q))
         reward_episode.append(re)
@@ -308,8 +324,12 @@ for episode in range(episodes):
         solved+=1
         steps_ep.append(len(reward_episode))
     total_episodes.append(reward_episode[-1])
+    r+=reward_episode[-1]
+    cumulative_reward.append(r)
 print('The simulation has been solved the environment DQN:{}'.format(solved/episodes))
 print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(total_episodes)
 plt.title('The simulation has been solved the environment Deep Q learning:{}'.format(solved/episodes))
+plt.show()
+plt.plot(cumulative_reward)
 plt.show()
