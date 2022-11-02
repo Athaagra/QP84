@@ -195,8 +195,12 @@ for episode in range(episodes):
         solved+=1 
         steps_ep.append(len(reward_episode))
     total_episodes.append(reward_episode[-1])
+plt.figure(figsize=(13, 13))
 print('The simulation has been solved the environment Belman Equation:{}'.format(solved/episodes))
 print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(total_episodes)
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Rewards')
+plt.grid(True,which="both",ls="--",c='gray')
 plt.title('The simulation has been solved the environment Bellman Equation:{}'.format(solved/episodes))
 plt.show()

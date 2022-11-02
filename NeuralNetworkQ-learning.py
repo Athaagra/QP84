@@ -193,14 +193,11 @@ FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
 LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor 
 ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
 Tensor = FloatTensor
-
-learning_rate=0.01
-
 number_of_inputs = 4
 number_of_outputs = 11
 egreedy=0.5
 steps=[]
-seed_value=23
+seed_value=0
 torch.manual_seed(seed_value)
 random.seed(seed_value)
 learning_rate=0.01
@@ -298,8 +295,12 @@ for episode in range(episodes):
         solved+=1
         steps_ep.append(len(reward_episode))
     total_episodes.append(reward_episode[-1])
+plt.figure(figsize=(13, 13))
 print('The simulation has been solved the environment Neural Network:{}'.format(solved/episodes))
 print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(total_episodes)
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Rewards')
+plt.grid(True,which="both",ls="--",c='gray')
 plt.title('The simulation has been solved the environment Neural Network:{}'.format(solved/episodes))
 plt.show()

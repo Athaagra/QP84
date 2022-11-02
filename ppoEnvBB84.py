@@ -330,17 +330,17 @@ def train_value_function(observation_buffer, return_buffer):
 
 
 # Hyperparameters of the PPO algorithm
-steps_per_epoch = 4000
+steps_per_epoch = 15
 epochs = 30
 gamma = 0.99
-clip_ratio = 0.2
-policy_learning_rate = 3e-4
-value_function_learning_rate = 1e-3
-train_policy_iterations = 80
-train_value_iterations = 80
+clip_ratio = 0.1
+policy_learning_rate = 0.3#3e-4
+value_function_learning_rate = 0.1#1e-3
+train_policy_iterations = 100
+train_value_iterations = 100
 lam = 0.97
 target_kl = 0.01
-hidden_sizes = (64, 64)
+hidden_sizes = (16, 16)
 
 # True if you want to render the environment
 render = False
@@ -349,7 +349,7 @@ render = False
 # observation space and the number of possible actions
 #env = gym.make("CartPole-v0")
 observation_dimensions = 4#env.observation_space.shape[0]
-num_actions = 11#env.action_space.n
+num_actions = 12#env.action_space.n
 
 # Initialize the buffer
 buffer = Buffer(observation_dimensions, steps_per_epoch)
@@ -366,7 +366,7 @@ critic = keras.Model(inputs=observation_input, outputs=value)
 # Initialize the policy and the value function optimizers
 policy_optimizer = keras.optimizers.Adam(learning_rate=policy_learning_rate)
 value_optimizer = keras.optimizers.Adam(learning_rate=value_function_learning_rate)
-
+rewards_during_training=[]
 # Initialize the observation, episode return and episode length
 #observation, episode_return, episode_length = env.reset(), 0, 0
 state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
@@ -422,6 +422,7 @@ for epoch in range(epochs):
             last_value = 0 if done else critic(observation.reshape(1, -1))
             buffer.finish_trajectory(last_value)
             sum_return += episode_return
+            #print(episode_return)
             sum_length += episode_length
             num_episodes += 1
             state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
@@ -451,8 +452,66 @@ for epoch in range(epochs):
     # Update the value function
     for _ in range(train_value_iterations):
         train_value_function(observation_buffer, return_buffer)
-
+    rewards_during_training.append(sum_return / num_episodes)
     # Print mean return and length for each epoch
     print(
         f" Epoch: {epoch + 1}. Mean Return: {sum_return / num_episodes}. Mean Length: {sum_length / num_episodes}"
     )
+#def save_weights():
+#    path= '/home/Optimus/Desktop/QuantumComputingThesis/'
+#    actor.save(path+ '_actor.h5')
+#    critic.save(path+ '_critic.h5')
+#def load_weights():
+#    path= '/home/Optimus/Desktop/QuantumComputingThesis/'
+#    critic.load_weights(path+ '_critic.h5')
+#    actor.load_weights(path+ '_actor.h5')
+
+#save_weights()
+#load_weights()
+plt.figure(figsize=(13, 13))
+plt.plot(rewards_during_training)
+plt.xlabel(f'Number of episodes')
+plt.ylabel('Average Rewards')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('The simulation has been solved the environment Proximal Policy:{}')#.format(solved/episodes))
+plt.show()
+total_episodes=[]
+solved=0
+episodes=100
+# run infinitely many episodes
+for i_episode in range(episodes):
+    # reset environment and episode reward
+    state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
+    ep_reward = 0
+    do=False
+    # for each episode, only run 9999 steps so that we don't
+    # infinite loop while learning
+    while do!=True:
+        # Get the logits, action, and take one step in the environment
+        #observation=observation[0]
+        if len(observation)==2:
+            observation=observation[0]
+        #print('Observation shape {}'.format(observation))
+        #print(type(observation))
+        observation = observation.reshape(1, -1)
+        #print('Observation shape {}'.format(observation))
+        #observation=observation[0]
+        logits, actiona = sample_action(observation)
+        #print('This are logits {} and actions {}'.format(logits, actiona))
+        action=np.array(actions_list[actiona[0]])
+        #print('This is the action {}'.format(action))
+        stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
+        #observation_new, reward, done, _,op = env.step(action[0].numpy())
+        episode_return += re
+        episode_length += 1
+        total_episodes.append(re)
+        if do==True:
+            solved+=1
+
+plt.figure(figsize=(13, 13))
+plt.plot(total_episodes)
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Rewards')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(solved/episodes))
+plt.show()

@@ -35,6 +35,21 @@ import random
 import math 
 import time
 from torch.autograd import Variable
+
+def save_model(epochs, model, optimizer, criterion):
+    """
+    Function to save the trained model to disk.
+    """
+    print(f"Saving final model...")
+    torch.save({
+                'epoch': epochs,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': criterion,
+                }, 'outputs/final_model.pth')
+
+
+
 def render(alice_datalog,bob_datalog,bob_has_mail):
     print("---Alice---")
     print("- Datalog: ", alice_datalog)
@@ -235,7 +250,7 @@ class QNet_Agent(object):
     def __init__(self):
         self.nn = NeuralNetwork().to(device)
         self.target_nn = NeuralNetwork().to(device)
-        self.loss_func = nn.MSELoss() 
+        self.loss_func = nn.CrossEntropyLoss()#nn.NLLLoss()#nn.MSELoss() 
         self.optimizer = optim.Adam(params=self.nn.parameters(), lr=learning_rate)
         self.update_target_counter = 0
     def select_action(self,state,epsilon):
@@ -259,19 +274,21 @@ class QNet_Agent(object):
         if (len(memory) < batch_size):
             return
         state,action,new_state,reward,done=memory.sample(batch_size)
-        print(state,action,new_state,reward,done)
+        #print(state,action,new_state,reward,done)
         state=Tensor(state).to(device)
         new_state=Tensor(new_state).to(device)
         reward = Tensor(reward).to(device)
         action = LongTensor(action).to(device)
         done = Tensor(done).to(device)
         new_state_values=self.target_nn(new_state).detach()
-        max_new_state_values = torch.max(new_state_values, 1)[0]
-        target_value=reward + gamma * max_new_state_values
-        #target_value=reward + (1- done) * gamma * max_new_state_values
-        print('This is the state {}'.format(self.nn(state).gather(1, action.unsqueeze(1)).squeeze(1)))
+        max_new_state_values = torch.argmax(new_state_values, 1)[0]
+        #target_value=reward + gamma * max_new_state_values
+        target_value=reward + (1- done) * gamma * max_new_state_values
+        #target_value=torch.argmax(target_value)
+        #print('This is the target value {}'.format(target_value))
+        #print('This is the state {}'.format(torch.argmax(self.nn(state))))#.gather(1, action.unsqueeze(1)).squeeze(1)))
         predicted_value = self.nn(state).gather(1, action.unsqueeze(1)).squeeze(1)
-        print('This is the target value {}'.format(predicted_value))          
+        #print('This is the predicted value {}'.format(predicted_value))          
         loss = self.loss_func(predicted_value, target_value)
             
         self.optimizer.zero_grad()
@@ -326,10 +343,36 @@ for episode in range(episodes):
     total_episodes.append(reward_episode[-1])
     r+=reward_episode[-1]
     cumulative_reward.append(r)
+plt.figure(figsize=(13, 13))
 print('The simulation has been solved the environment DQN:{}'.format(solved/episodes))
 print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(total_episodes)
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Rewards')
 plt.title('The simulation has been solved the environment Deep Q learning:{}'.format(solved/episodes))
+plt.grid(True,which="both",ls="--",c='gray')
 plt.show()
+plt.figure(figsize=(13, 13))
+#print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(cumulative_reward)
+plt.xlabel(f'Number of episodes')
+plt.ylabel('Rewards')
+#plt.title('The simulation has been solved the environment Deep Q learning:{}'.format(solved/episodes))
+plt.grid(True,which="both",ls="--",c='gray')
 plt.show()
+# Specify a path
+PATH = "DQNExperienceReplay.pt"
+# Save
+torch.save(qnet_agent, PATH)
+
+
+
+
+
+
+
+
+
+
+
+
