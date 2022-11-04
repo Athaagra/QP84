@@ -189,7 +189,7 @@ Tensor = torch.Tensor
 LongTensor = torch.LongTensor
 gamma= 0.2
 seed_value=0
-episodes=200
+episodes=100
 cumulative_reward=[]
 solved=0
 r=0
@@ -204,7 +204,7 @@ number_of_inputs = 4
 number_of_outputs = 12
 replay_mem_size=80
 egreedy=1
-egreedy_final=0.15
+egreedy_final=0.95
 egreedy_decay=500
 update_target_frequency = 200
 batch_size=10
@@ -289,8 +289,8 @@ class QNet_Agent(object):
         done = Tensor(done).to(device)
         new_state_values=self.target_nn(new_state).detach()
         max_new_state_values = torch.argmax(new_state_values, 1)[0]
-        #target_value=reward + gamma * max_new_state_values
-        target_value=reward + (1- done) * gamma * max_new_state_values
+        target_value=reward + gamma * max_new_state_values
+        #target_value=reward + (1- done) * gamma * max_new_state_values
         #target_value=torch.argmax(target_value)
         #print('This is the target value {}'.format(target_value))
         #print('This is the state {}'.format(torch.argmax(self.nn(state))))#.gather(1, action.unsqueeze(1)).squeeze(1)))
@@ -338,9 +338,10 @@ for episode in range(episodes):
         #print(Q)
         state_n=stat
     if do==True:#reward_episode[-1]==1:
-        solved+=1
         steps_ep.append(len(reward_episode))
         total_episodes.append(reward_episode[-1])
+    if reward_episode[-1]==1:
+        solved+=1
     r+=reward_episode[-1]
     cumulative_reward.append(r)
 plt.figure(figsize=(13, 13))
