@@ -187,19 +187,26 @@ use_cuda=torch.cuda.is_available()
 device=torch.device("cuda:0" if use_cuda else "cpu")
 Tensor = torch.Tensor
 LongTensor = torch.LongTensor
-gamma= 0.99
+gamma= 0.2
 seed_value=0
+episodes=200
+cumulative_reward=[]
+solved=0
+r=0
+frames_total=0
+steps_ep=[]
+total_episodes=[]
 torch.manual_seed(seed_value)
 random.seed(seed_value)
 #learning_rate=1
-learning_rate=0.03
+learning_rate=1
 number_of_inputs = 4
 number_of_outputs = 12
-replay_mem_size=30
+replay_mem_size=80
 egreedy=1
-egreedy_final=0.89
+egreedy_final=0.15
 egreedy_decay=500
-update_target_frequency = 20
+update_target_frequency = 200
 batch_size=10
 hidden_layer=64
 steps=[]
@@ -304,13 +311,6 @@ class QNet_Agent(object):
         self.update_target_counter +=1
             
 memory=ExperienceReplay(replay_mem_size)          
-episodes=100
-cumulative_reward=[]
-solved=0
-r=0
-frames_total=0
-steps_ep=[]
-total_episodes=[]
 qnet_agent=QNet_Agent()
 for episode in range(episodes):
     import numpy as np
@@ -337,10 +337,10 @@ for episode in range(episodes):
         reward_episode.append(re)
         #print(Q)
         state_n=stat
-    if reward_episode[-1]==1:
+    if do==True:#reward_episode[-1]==1:
         solved+=1
         steps_ep.append(len(reward_episode))
-    total_episodes.append(reward_episode[-1])
+        total_episodes.append(reward_episode[-1])
     r+=reward_episode[-1]
     cumulative_reward.append(r)
 plt.figure(figsize=(13, 13))
