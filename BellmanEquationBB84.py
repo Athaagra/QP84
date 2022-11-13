@@ -155,38 +155,41 @@ def reset():
     action_space = (3, 4)
     actions=(0,1)
     return state,actions,data1,alice_data_counter,alice_datalog,bob_data_counter,bob_has_mail,bob_mailbox,bob_key,done,action_history,cumulative_reward,state_space,action_space,max_moves,alice_observation,bob_datalog 
-	
+import numpy as np
+import matplotlib.pyplot as plt	
 episodes=100
 solved=0
 steps_ep=[]
+actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]   
+q=(4,len(actions_list))
+Q=np.zeros(q)
 total_episodes=[]
 for episode in range(episodes):
-    import numpy as np
-    import matplotlib.pyplot as plt
-    #def __init__(self):
     np.random.seed(0)
-    actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
     gamma= 1
     state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
-    q=(4,len(actions_list))
     #print(state_n)
-    Q=np.zeros(q)
     do=False
     reward_episode=[]
     steps=0
+    #for t in range(0,15):
     while do!=True:
         steps+=1
         random_values=Q[int(state_n[0][0])] + np.random.randint(11, size=(1,len(actions_list)))/1000
-        print(random_values)
         actiona=np.argmax(random_values)
-        print(actiona)
+        q_val=(int(state_n[0][0]),actiona)
+        print('Print q_val {}'.format(q_val))
         #random_values=Q[int(abs(state_n[1][1]))] + np.random.randint(2, size=(1,max_moves))/1000
         #actionb=np.argmax(random_values)
         action=np.array(actions_list[actiona])#(actiona,actionb)
         #print('This is the action {}'.format(action))
         stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
         #print('the reward is {},the is done {}, this is the key of bob {}, this is the bitstring {}'.format(re,do,bob_key,data))
-        Q[int(state_n[0][0]),actiona]=re + gamma * max(Q[int(stat[0][0])])
+        value=re + gamma * max(Q[int(stat[0][0])])
+        print('This is the Q-table 2 {}'.format(q_val))
+        print('This is the value {}'.format(value))
+        Q[(q_val)]=value
+        #print(re)
         #print('This is the tabular {}'.format(Q))
         reward_episode.append(re)
         #print(Q)
@@ -204,3 +207,33 @@ plt.ylabel('Rewards')
 plt.grid(True,which="both",ls="--",c='gray')
 plt.title('The simulation has been solved the environment Bellman Equation:{}'.format(solved/episodes))
 plt.show()
+
+
+total_re=0
+episodes = 100
+for _ in range(episodes):
+    state_n,actions,data,al_coun,al_data,bob_count,bob_mail,bob_mailbox,bob_k,done,act_hist,cum_re,state_space,action_space,max_moves,al_obs,bob_data,=reset()
+#    epochs, penalties, reward = 0, 0, 0
+    state_n=state_n[0][0]
+    done = False
+    
+    while not done:
+        action = np.argmax(Q[int(state_n)])
+        #print(action)
+        action=np.array(actions_list[action])
+        stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
+        done=do
+        reward=re
+        state_n=stat[0][0]
+        #print(re)
+        if reward ==1:
+            total_re += 1
+print(total_re)
+        #epochs += 1
+
+    #total_penalties += penalties
+    #total_epochs += epochs
+
+#print(f"Results after {episodes} episodes:")
+#print(f"Average timesteps per episode: {total_epochs / episodes}")
+#print(f"Average penalties per episode: {total_penalties / episodes}")
