@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Nov 14 19:46:09 2022
-
 @author: Optimus
 """
 
@@ -23,10 +22,53 @@ Rewards accumulate: negative points for wrong guess, positive points for correct
 Game terminates with correct key or N moves
 """
 class Qprotocol:
+    def encoded(data0,q):
+        chars="XZ"
+        basesender=np.random.randint(0,2,q)
+        senderFilter=[chars[i] for i in basesender]
+        data1=[]
+        for i in range(0,len(data0)):
+            if data0[i]==0 and senderFilter[i]=="Z":
+                data1.append('0')
+            if data0[i]==1 and senderFilter[i]=="Z":
+                data1.append('1')
+            if data0[i]==0 and senderFilter[i]=="X":
+                data1.append('+')
+            if data0[i]==1 and senderFilter[i]=="X":
+                data1.append('-')
+        return np.array(data1)
+    def decoded(data1,q):
+        chars="XZ"
+        basereciever=np.random.randint(0,2,q)
+        recieverFilter=[chars[i] for i in basereciever]
+        data2=[]
+        for i in range(0,len(data1)):
+            if data1[i]=="0" and recieverFilter[i]=="Z":
+                data2.append(0)
+            if data1[i]=="1" and recieverFilter[i]=="Z":
+                data2.append(1)
+            if data1[i]=="0" and recieverFilter[i]=="X":
+                data2.append(0)
+            if data1[i]=="1" and recieverFilter[i]=="X":
+                data2.append(1)
+            if data1[i]=="+" and recieverFilter[i]=="X":
+                data2.append(0)
+            if data1[i]=="-" and recieverFilter[i]=="X":
+                data2.append(1)
+            if data1[i]=="+" and recieverFilter[i]=="Z":
+                data2.append(np.random.randint(0,2,1)[0])
+            if data1[i]=="-" and recieverFilter[i]=="Z":
+                data2.append(np.random.randint(0,2,1)[0])
+        return np.array(data2)
     def __init__(self,maxm):
         self.max_moves = maxm
+        self.data0=np.random.randint(0,2,4)
+        self.data1 = np.random.randint(0,2,4)
+        self.data2 = np.random.randint(0,2,4)
         # State for alice
-        self.data1 = np.random.randint(0,2,1)
+        #self.data1 = np.random.randint(0,2,2)
+        #self.data2 = np.random.randint(0,2,2)
+        self.error_counter=[]
         self.alice_data_counter = 0
         self.alice_datalog = []
         # State for bob
@@ -91,9 +133,12 @@ class Qprotocol:
         if( action_bob == 2 ):
             self.bob_key.append(0)
                 # reward = 0
-            if( len(self.bob_key) == len(self.data1) ):
+            if( len(self.bob_key) == len(self.data2) ):
             # self.done = True
-                if( np.array(self.bob_key).all() == self.data1.all() ):
+                a=[self.bob_key[i]==self.data2[i] for i in range(len(self.bob_key))]
+                a=np.array(a)
+                if a.all():
+                #if( np.array(self.bob_key) == self.data2 ):
                     reward = +1
                     self.cumulative_reward += reward
                     self.done = True
@@ -105,9 +150,12 @@ class Qprotocol:
             self.bob_key.append(1)
             # reward = 0
             # If bob wrote enough bits
-            if( len(self.bob_key) == len(self.data1) ):
+            if( len(self.bob_key) == len(self.data2) ):
                 # self.done = True
-                if( np.array(self.bob_key).all() == self.data1.all() ):
+                a=[self.bob_key[i]==self.data2[i] for i in range(len(self.bob_key))]
+                a=np.array(a)
+                if a.all():
+                #if( np.array(self.bob_key) == self.data2 ):
                     reward = +1
                     self.cumulative_reward += reward
                     self.done = True
@@ -119,11 +167,23 @@ class Qprotocol:
         self.bob_observation = np.concatenate(([self.bob_has_mail], self.bob_datalog))
         state = (self.alice_observation, self.bob_observation)
         return state, reward, self.done, {'action_history':self.action_history}
-    def reset(self):
+    def reset(self,encode=encoded,decode=decoded):
         import numpy as np
         self.max_moves = 4
         # State for alice
-        self.data1 = np.random.randint(0,2,1)
+        #self.data0=np.random.randint(0,2,2)
+        self.data1 = np.random.randint(0,2,4)
+        #self.data2 = np.random.randint(0,2,2)
+        self.data0=encode(self.data1,len(self.data1))
+        #print(self.data0)
+        self.data2=decode(self.data0,len(self.data0))
+        print(self.data2)
+        z=[self.data1[i]==self.data2[i] for i in range(len(self.data1))]
+        z=np.array(z)
+        if z.all():
+            self.error_counter.append(0)
+        else:
+            self.error_counter.append(1)
         self.alice_data_counter = 0
         self.alice_datalog = []
         # State for bob
@@ -155,6 +215,7 @@ class Qprotocol:
 # =============================================================================
 import numpy as np
 import matplotlib.pyplot as plt	
+resultss=[]
 episodes=100
 qp=Qprotocol(4)
 solved=0
@@ -162,12 +223,15 @@ steps_ep=[]
 actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]   
 q=(6,len(actions_list))
 Q=np.zeros(q)
+error=0
 total_episodes=[]
 q_value=[]
 for episode in range(episodes):
     #np.random.seed(0)
     gamma= 1
     state=qp.reset()
+    gamma= 0.01
+    learning_rate=0.001
     #print(state_n)
     #state_n=state
     done=False
@@ -188,7 +252,7 @@ for episode in range(episodes):
         new_state, reward, done,info=qp.step(action)
         #stat,re,do,action_h,bob_key=step(action,act_hist,max_moves,al_coun,data,al_data,bob_count,al_obs,bob_k,bob_data,cum_re,bob_mailbox,bob_mail,done, verbose=0,)
         #print('the reward is {},the is done {}, this is the key of bob {}, this is the bitstring {}'.format(re,do,bob_key,data))
-        value=reward + gamma * max(Q[int(new_state[0][0])])
+        value=(1-learning_rate)*Q[q_val]+learning_rate * (reward + gamma * max(Q[int(new_state[0][0])]))
         q_value.append(value)
         #print('This is the Q-table 2 {}'.format(q_val))
         Q[(q_val)]=value
@@ -200,15 +264,51 @@ for episode in range(episodes):
     if reward_episode[-1]==1:
         solved+=1 
         steps_ep.append(len(reward_episode))
+    else:
+        solved+=0 
+        steps_ep.append(len(reward_episode))
     total_episodes.append(reward_episode[-1])
+
+
+total_re=[]
+solved=0
+steps_ep=[]
+episodes = 100
+for _ in range(episodes):
+    state=qp.reset()
+#    epochs, penalties, reward = 0, 0, 0
+    state=state[0][0]
+    #print(state_n1)
+    done = False
+    steps=0
+    while done!=True:# or done2!=True or done3!=True or done4!=True or done5!=True or done6!=True or done7!=True or done8!=True:
+        action = np.argmax(Q[int(state)])
+        #print(action)
+        action=np.array(actions_list[action])
+        new_state, reward, done,info=qp.step(action)
+        done=done
+        steps+=1
+        reward=reward
+        state=new_state[0][0]
+        #print(re)
+        if done ==True:# or do2 == True or do3==True or do4==True or do5==True or do6==True or do7==True or do8==True:
+            steps_ep.append(steps)
+            if reward==1:# or reward2==1 or reward3==1 or reward4==1 or  reward5==1 or reward6==1 or  reward7==1 or reward8==1:
+                total_re.append(1)
+                solved+=1
+            else:
+                total_re.append(0)
+                solved+=0
+            #if re==1:
+error=np.array(qp.error_counter)[100:-1]
 plt.figure(figsize=(13, 13))
-print('The simulation has been solved the environment Belman Equation:{}'.format(solved/episodes))
+print('The simulation has been solved the environment Q-learning Equation:{}'.format(solved/episodes))
 print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
 plt.plot(total_episodes)
-plt.xlabel(f'Number of Steps of episode')
+plt.xlabel(f'Number of episodes')
 plt.ylabel('Rewards')
 plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Bellman Equation:{}'.format(solved/episodes))
+plt.title('The simulation has been solved the environment Q-learning Equation:{}'.format(solved/episodes))
 plt.show()
 
 plt.figure(figsize=(13, 13))
@@ -218,317 +318,303 @@ plt.ylabel('Q-value')
 plt.grid(True,which="both",ls="--",c='gray')
 plt.title('The q-value during the training')
 plt.show()
-total_re=[]
+
+plt.figure(figsize=(13, 13))
+plt.plot(steps_ep,c='grey')
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Steps')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('The steps during the training:{}'.format(np.mean(steps_ep)))
+plt.show()
+
+plt.figure(figsize=(13, 13))
+plt.plot(error,c='red')
+plt.xlabel(f'Number of episodes')
+plt.ylabel('Error')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('Number of errors:{}'.format(sum(error)))
+plt.show()
+resultss.append(['Qlearning Reward :',solved/episodes])
+resultss.append(['Qlearning Steps Reward :',np.mean(steps_ep)])
+resultss.append(['Qlearning Error Reward :',sum(error)])
+from scipy.stats import mannwhitneyu
+# seed the random number generator
+if sum(total_episodes)!=sum(error):
+    stat, pvalue = mannwhitneyu(total_episodes, error)
+    print('Statistics=%.3f, p=%.3f' % (stat, pvalue))
+    # interpret
+    if pvalue > 0.05:
+        print('We accept the null hypothesis')
+        resultss.append(['Qlearning p-value We accept the null hypothesis:',pvalue])
+    else:
+        print("The p-value is less than we reject the null hypothesis")
+        resultss.append(['Qlearning p-value the p-value is less than we reject the null hypothesis:',pvalue])
+else:
+    print('identical')
+    
+import random
+import gym
+import numpy as np
+from collections import deque
+from keras.models import Sequential 
+from keras.layers import Dense
+from keras.optimizers import Adam
+import numpy as np
+import tensorflow as tf
+import gym
+import random
+import math
+import time
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime
+import sys
+
+
+
+EPISODES=80
+#random.seed(0)
+class DQNAgent:
+    def __init__(self, state_size, action_size):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.memory = deque(maxlen=200)
+        self.gamma = 0.99
+        self.epsilon = 1
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.01
+        self.learning_rate = 1e-4#20.25##
+        self.q_value=[]
+        self.q_value_pr=[]
+        self.model = self._build_model()
+        #self.modelT = self._build_model(4)
+    
+    def _build_model(self):
+        model = Sequential()
+        #24
+        model.add(Dense(self.action_size, input_dim=self.state_size, activation='softmax'))
+        #model.add(Dense(24, activation='relu'))
+        #model.add(Dense(self.action_size, activation='linear'))
+        #model.add(Dense(self.action_size, activation=''))
+        model.compile(loss='categorical_crossentropy',metrics=['accuracy'],optimizer=Adam(lr=self.learning_rate))
+        return model 
+    
+    def memorize(self,state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
+    
+    def act(self, state):
+        if np.random.rand() <= self.epsilon:
+            return random.randrange(self.action_size)
+        act_values = self.model.predict(state)
+        #act_valuesT = self.modelT.predict(state)
+        return np.argmax(act_values[0])#,np.argmax(act_valuesT[0])
+    
+    def replay(self, batch_size):
+        minibatch = random.sample(self.memory, batch_size)
+        #callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
+        for state, action, reward, next_state, done in minibatch:
+            target=reward
+            targetT=reward
+            if not done:
+                target = (reward+self.gamma*np.amax(self.model.predict(next_state)[0]))
+                #targetT = (reward+self.gamma*np.amax(self.modelT.predict(next_state)[0]))
+                #print(target)
+                #artat=np.argmax(target)
+                #print(artat)
+                self.q_value.append(target)
+            target_f=self.model.predict(state)
+            #target_fT=self.modelT.predict(state)
+            #print(target_f)
+            artatt=np.argmax(target_f)
+            #print(artatt)
+            self.q_value_pr.append(target_f[0][artatt])
+            #print('This is the target {}'.format(target))
+            #print('This is the target f {} action {}'.format(target_f[0],action))
+            print(action)
+            target_f[0][action]=target
+            #target_fT[0][action[1]]=target
+            history=self.model.fit(state, target_f, epochs=1,verbose=0,batch_size=batch_size)
+            #history=self.modelT.fit(state, target_fT, epochs=1,verbose=0,batch_size=batch_size,callbacks=[callback])
+            #print(history.history['loss'])
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
+    
+    def load(self, name):
+        self.model.load_weights(name)
+    
+    def save(self, name):
+        self.model.save_weights(name)
+
+if __name__=="__main__":
+    #env=gym.make('CartPole-v1')
+    state_size=4#env.observation_space.shape[0]
+    qpDqn=Qprotocol(4)
+    actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
+    action_size=len(actions_list)#env.action_space.n
+    print(action_size)
+    agent = DQNAgent(state_size, action_size)
+    #agent.load("./QP84DQN.h5")
+    done = False
+    batch_size=32
+    solved=0
+    steps_epi=[]
+    qval=[]
+    qval_pr=[]
+    total_episodes=[]
+    r=0
+    cumulative_reward=[]
+    for e in range(EPISODES):
+        state=qpDqn.reset()
+        state=state
+        steps_ep=0
+        done=False
+        reward_episode=[]
+        state = np.array(state[0])
+        state=np.reshape(state, [1, state_size])
+        while done != True:
+        #for time in range(50):
+            #actiona=agent.act(state)
+            actiona=agent.act(state)
+            #print('This is action b {}'.format(actionb))
+            #action=(actiona,actionb)
+            actiona=np.array(actiona)
+            action = actions_list[actiona]
+            new_state, reward, done,info=qpDqn.step(action)
+            steps_ep+=1
+            next_state=np.array(new_state[0])
+            next_state= np.reshape(next_state, [1, state_size])
+            agent.memorize(state, actiona, reward, next_state, done)
+            state = next_state
+            reward_episode.append(reward)
+            print(done)
+            if done:
+                steps_epi.append(steps_ep)
+                if reward==1:
+                    solved+=1                
+                print("episode : {}/{},reward {}".format(e, EPISODES,reward))#, solved, agent.epsilon,reward))
+                break 
+            #print('The agent memory {}'.format(len(agent.memory)))
+            if len(agent.memory) > batch_size:
+                agent.replay(batch_size)
+                qval.append(agent.q_value)
+                qval_pr.append(agent.q_value_pr)
+                #print(qval)
+            agent.save("./QP84DQN4QuantumChannel.h5")
+        print(reward_episode,e)
+        if len(reward_episode)!=0:
+            r+=reward_episode[-1]
+            cumulative_reward.append(r)
+            total_episodes.append(reward_episode[-1])
+        else:
+            print(reward_episode,e)
+
+#env=gym.make('CartPole-v1')
+state_size=4#env.observation_space.shape[0]
+#action_size=#env.action_space.n
+actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
+action_size=len(actions_list)#env.action_space.n
+agent = DQNAgent(state_size, action_size)
+#agent.load("./QP84DQN1QuantumChannel.h5")
+done = False
 solved=0
+steps_epi=[]
+batch_size=32
+qval=[]
+qval_pr=[]
+total_episodes=[]
 r=0
 cumulative_reward=[]
-episodes = 100
-for _ in range(episodes):
-    state=qp.reset()
-    print(state[0][0])
-#   epochs, penalties, reward = 0, 0, 0
-    state=state[0][0]
-    done = False
-    while not done:
-        action = np.argmax(Q[int(state)])
-        #print(action)
-        action=np.array(actions_list[action])
-        new_state, reward, done,info=qp.step(action)
-        state=new_state[0][0]
-        #print(re)
-        if done==True:
-            total_re.append(reward)
-            if reward==1:
-                solved+=1
-    r+=total_re[-1]
-    cumulative_reward.append(r)
-
-plt.figure(figsize=(13, 13))            
-print('The simulation has been solved the environment Belman Equation:{}'.format(solved))
-plt.plot(total_re)
-plt.xlabel(f'Number of Steps of episode')
-plt.ylabel('Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Bellman Equation:{}'.format(solved/episodes))
-plt.show()
+for e in range(EPISODES):
+        state=qpDqn.reset()
+        state=state
+        steps_ep=0
+        #state=env.reset()
+        done=False
+        reward_episode=[]
+        state = np.array(state[0])
+        state=np.reshape(state, [1, state_size])
+        while done!= True:
+            actiona=agent.act(state)
+            actiona=np.array(actiona)
+            action= actions_list[actiona]
+            new_state, reward, done,info=qpDqn.step(action)
+            reward = reward
+            steps_ep+=1
+            next_state=np.array(state[0])
+            next_state= np.reshape(next_state, [1, state_size])
+            state = next_state
+            reward_episode.append(reward)
+            if done:
+                steps_epi.append(steps_ep)
+                if reward==1:
+                    solved+=1                
+                print("episode : {}/{},reward {}".format(e, EPISODES,reward))#, solved, agent.epsilon,reward))
+                break 
+            #print('The agent memory {}'.format(len(agent.memory)))
+            if len(agent.memory) > batch_size:
+                agent.replay(batch_size)
+                qval.append(agent.q_value)
+                qval_pr.append(agent.q_value_pr)
+                #print(qval)
+            #agent.save("./QP84DQN.h5")
+        r+=reward_episode[-1]
+        cumulative_reward.append(r)
+        total_episodes.append(reward_episode[-1])
+error=np.array(qpDqn.error_counter)[100:-1]
 plt.figure(figsize=(13, 13))
-#print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
-plt.plot(cumulative_reward)
+print('The simulation has been solved the environment DQN Equation:{}'.format(solved/EPISODES))
+print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
+plt.plot(total_episodes)
 plt.xlabel(f'Number of episodes')
 plt.ylabel('Rewards')
-#plt.title('The simulation has been solved the environment Deep Q learning:{}'.format(solved/episodes))
 plt.grid(True,which="both",ls="--",c='gray')
-plt.show()
-
-
-# =============================================================================
-#  Q-learning Stochastic 
-# =============================================================================
-
-
-episodes=100
-solved=0
-#actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
-steps_ep=[]
-q=(4,len(actions_list))
-#print(state_n)
-Q=np.zeros(q)
-total_episodes=[]
-q_value_ep=[]
-for episode in range(episodes):
-    import matplotlib.pyplot as plt
-    gamma= 0.01
-    learning_rate=0.001
-    state=qp.reset()
-    done=False
-    reward_episode=[]
-    steps=0
-    while done!=True:
-        steps+=1
-        random_values=Q[int(state[0][0])] + np.random.randint(11, size=(1,len(actions_list)))/1000
-        actiona=np.argmax(random_values)
-        q_val=(int(state[0][0]),actiona)
-        action=np.array(actions_list[actiona])
-        new_state, reward, done,info=qp.step(action)
-        print('this is the reward {}'.format(reward))
-        q_value=(1-learning_rate)*Q[q_val]+learning_rate * (reward + gamma * max(Q[int(new_state[0][0])]))
-        q_value_ep.append(q_value)
-        Q[q_val]=q_value
-        reward_episode.append(reward)
-        state=new_state
-    print('This is reward episode {}'.format(reward_episode))
-    if reward_episode[-1]==1:
-        solved+=1
-        steps_ep.append(len(reward_episode))
-    total_episodes.append(reward_episode[-1])
-print('The simulation has been solved the environment Q learning stochastic:{}'.format(solved/episodes))
-print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
-plt.figure(figsize=(13, 13))
-plt.plot(total_episodes)
-plt.xlabel(f'Number of Steps of episode')
-plt.ylabel('Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Q learning stochastic:{}'.format(solved/episodes))
+plt.title('The simulation has been solved the environment DQN Equation:{}'.format(solved/EPISODES))
 plt.show()
 
 plt.figure(figsize=(13, 13))
-plt.plot(q_value_ep,c='orange')
+plt.plot(qval,c='orange')
+plt.plot(qval_pr,c='grey')
 plt.xlabel(f'Number of Steps of episode')
 plt.ylabel('Q-value')
 plt.grid(True,which="both",ls="--",c='gray')
 plt.title('The q-value during the training')
 plt.show()
 
-total_re=[]
-solved=0
-r=0
-cumulative_reward=[]
-episodes = 100
-for _ in range(episodes):
-    state=qp.reset()
-    print(state[0][0])
-#   epochs, penalties, reward = 0, 0, 0
-    state=state[0][0]
-    done = False
-    while not done:
-        action = np.argmax(Q[int(state)])
-        #print(action)
-        action=np.array(actions_list[action])
-        new_state, reward, done,info=qp.step(action)
-        state=new_state[0][0]
-        #print(re)
-        if done==True:
-            total_re.append(reward)
-            if reward==1:
-                solved+=1
-    r+=total_re[-1]
-    cumulative_reward.append(r)
-plt.figure(figsize=(13, 13))            
-print('The simulation has been solved the environment Q-learning Equation stochastic:{}'.format(solved))
-plt.plot(total_re)
-plt.xlabel(f'Number of Steps of episode')
-plt.ylabel('Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Q-learning Equation stochastic:{}'.format(solved/episodes))
-plt.show()
 plt.figure(figsize=(13, 13))
-#print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
-plt.plot(cumulative_reward)
+plt.plot(steps_epi,c='grey')
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Steps')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('The steps during the training:{}'.format(np.mean(steps_ep)))
+plt.show()
+
+plt.figure(figsize=(13, 13))
+plt.plot(error,c='red')
 plt.xlabel(f'Number of episodes')
-plt.ylabel('Rewards')
-#plt.title('The simulation has been solved the environment Deep Q learning:{}'.format(solved/episodes))
+plt.ylabel('Error')
 plt.grid(True,which="both",ls="--",c='gray')
+plt.title('Number of errors:{}'.format(sum(error)))
 plt.show()
 
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import gym
-import random 
-import math
-import time
-import matplotlib.pyplot as plt 
-import torch 
-import torch.nn as nn
-import torch.optim as optim 
-import torch.nn.functional as F 
-from torch.autograd import Variable
-
-#if gpu is to be used 
-use_cuda=torch.cuda.is_available()
-device=torch.device("cuda:0" if use_cuda else "cpu")
-FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
-LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor 
-ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
-Tensor = FloatTensor
-number_of_inputs = 4
-number_of_outputs = 11
-egreedy=0.5
-steps=[]
-#seed_value=0
-#torch.manual_seed(seed_value)
-#random.seed(seed_value)
-learning_rate=0.01
-#num_episodes=500
-gamma=0.99
-egreedy=0.9
-egreedy_final=0.02
-egreedy_decay=500
-report_interval=10
-score_to_solve=195
-
-def calculate_epsilon(steps_done):
-    epsilon=egreedy_final + (egreedy - egreedy_final) * \
-        math.exp(-1. * steps_done / egreedy_decay)
-    return epsilon
-
-class NeuralNetwork(nn.Module):
-    def __init__(self):
-        super(NeuralNetwork, self).__init__()
-        self.linear1 = nn.Linear(number_of_inputs,number_of_outputs)
-        
-    def forward(self, x):
-        output = self.linear1(x)
-        return output
-
-class QNet_Agent(object):
-    def __init__(self):
-        self.nn = NeuralNetwork().to(device)
-        self.loss_func = nn.MSELoss() 
-        self.optimizer = optim.Adam(params=self.nn.parameters(), lr=learning_rate)
-    def select_action(self,state,epsilon):
-         random_for_egreedy = torch.rand(1)[0]
-         if random_for_egreedy > egreedy:
-             with torch.no_grad():
-                 state=Tensor(state).to(device)
-                 action_from_nn=self.nn(state)
-                 action=torch.max(action_from_nn,0)[1]
-                 actiona=action.item()
-                 action=np.array(actions_list[actiona])
-                 #print('This is the action {} in egreedy'.format(action))
-         else:
-            print('This is the state {}'.format(state))
-            random_values=Q[int(state[0])] + np.random.randint(11, size=(1,len(actions_list)))/1000
-            actiona=np.argmax(random_values)
-            #random_values=Q[int(abs(state_n[1][1]))] + np.random.randint(2, size=(1,max_moves))/1000
-            #actionb=np.argmax(random_values)
-            action=np.array(actions_list[actiona])
-         return action       
-    def optimize(self,state,action,new_state,reward,done):
-        state=Tensor(state).to(device)
-        new_state=Tensor(new_state).to(device)
-        #reward = Tensor(reward).to(device)
-        #Q[int(state_n[1][0]),actiona]=re + gamma * max(Q[int(stat[1][0])])
-        if done:
-            target_value = reward
-        else:
-            new_state_value=self.nn(new_state).detach()
-            max_new_state_values = torch.max(new_state_value)
-            target_value=reward + gamma + max_new_state_values
-episodes=100
-solved=0
-frames_total=0
-steps_ep=[]
-total_episodes=[]
-qnet_agent=QNet_Agent()
-for episode in range(episodes):
-    import numpy as np
-    import matplotlib.pyplot as plt
-    #def __init__(self):
-    gamma= 1
-    actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
-    learning_rate=1
-    state=qp.reset()
-    q=(4,len(actions_list))
-    print(state)
-    Q=np.zeros(q)
-    done=False
-    reward_episode=[]
-    steps=0
-    while done!=True:
-        steps+=1
-        frames_total+=1
-        epsilon=calculate_epsilon(frames_total)
-        action=qnet_agent.select_action(state[0],epsilon)
-        print('This is the action {}'.format(action))
-        new_state, reward, done,info=qp.step(action)
-        qnet_agent.optimize(new_state[0],action,state[0],reward,done)
-        reward_episode.append(reward)
-        state=new_state
-    if reward_episode[-1]==1:
-        solved+=1
-        steps_ep.append(len(reward_episode))
-    total_episodes.append(reward_episode[-1])
-plt.figure(figsize=(13, 13))
-print('The simulation has been solved the environment Neural Network:{}'.format(solved/episodes))
-print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
-plt.plot(total_episodes)
-plt.xlabel(f'Number of Steps of episode')
-plt.ylabel('Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Neural Network:{}'.format(solved/episodes))
-plt.show()
-
-episodes=100
-solved=0
-frames_total=0
-steps_ep=[]
-total_episodes=[]
-for episode in range(episodes):
-    import numpy as np
-    import matplotlib.pyplot as plt
-    gamma= 1
-    actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
-    learning_rate=1
-    state=qp.reset()
-    done=False
-    reward_episode=[]
-    steps=0
-    while done!=True:
-        steps+=1
-        frames_total+=1
-        epsilon=calculate_epsilon(frames_total)
-        action=qnet_agent.select_action(state[0],epsilon)
-        new_state, reward, done,info=qp.step(action)
-        reward_episode.append(reward)
-        state=new_state
-    if reward_episode[-1]==1:
-        solved+=1
-        steps_ep.append(len(reward_episode))
-    total_episodes.append(reward_episode[-1])
-plt.figure(figsize=(13, 13))
-print('The simulation has been solved the environment Neural Network:{}'.format(solved/episodes))
-print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
-plt.plot(total_episodes)
-plt.xlabel(f'Number of Steps of episode')
-plt.ylabel('Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Neural Network:{}'.format(solved/episodes))
-plt.show()
-
-
-
+resultss.append(['DQN Reward :',solved/EPISODES])
+resultss.append(['DQN Steps Reward :',np.mean(steps_ep)])
+resultss.append(['DQN Error Reward :',sum(error)])
+from scipy.stats import mannwhitneyu
+# seed the random number generator
+if sum(total_episodes)!=sum(error):
+    stat, pvalue = mannwhitneyu(total_episodes, error)
+    print('Statistics=%.3f, p=%.3f' % (stat, pvalue))
+    # interpret
+    
+    if pvalue > 0.05:
+        print('We accept the null hypothesis')
+        resultss.append(['DQN p-value We accept the null hypothesis:',pvalue])
+    else:
+        print("The p-value is less than we reject the null hypothesis")
+        resultss.append(['DQN p-value The p-value is less than we reject the null hypothesis:',pvalue])
+else:
+    print('continue')
 
 import numpy as np
 #import torch.optim as optim
@@ -540,8 +626,7 @@ import time
 import matplotlib.pyplot as plt
 from datetime import datetime
 import sys
-HISTORY_LENGTH = 1  
-qp=Qprotocol(4)
+HISTORY_LENGTH = 0  
 # #hyperparameters
 D = 4#len(env.reset())*HISTORY_LENGTH
 M = 32
@@ -549,7 +634,6 @@ K = 12
 
 
 actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
-
 
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
@@ -567,7 +651,7 @@ class ANN:
         self.M=M
         self.K=K
         self.f=f
-    def init(self):        
+    def init(self):
         D, M, K = self.D, self.M, self.K
         self.W1 = np.random.randn(D, M) /np.sqrt(D)
         self.b1 = np.zeros(M)
@@ -580,9 +664,7 @@ class ANN:
         
     def sample_action(self, x):
         X=np.atleast_2d(x)
-        #X=x
         Y=self.forward(X)
-        #print('Forward process {}'.format(Y))
         y=Y[0]
         return np.argmax(y)
         
@@ -597,9 +679,6 @@ class ANN:
             'b2': self.b2
             }
     def set_params(self, params):
-        #D,K = self.D, self.K
-        #self.W1 = params[:D * K].reshape(D, K)
-        #self.b1 = params[D*K:D*K +K]
         D,M,K = self.D, self.M, self.K
         self.W1 = params[:D * M].reshape(D, M)
         self.b1 = params[D*M:D*M +M]
@@ -625,11 +704,8 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters):
         for j in range(population_size):
             params_try = params + sigma * N[j]
             R[j],acts[j],_ = f(params_try)
-            #print('This is the action {}'.format(acts[j]))
-            #print('This is the reward {}'.format(R[j]))
         m = R.mean()
         s = R.std()+0.001
-        #print('This is s {}'.format(s))
         if s == 0:
             # we cannot apply the following equation
             print("Skipping")
@@ -655,18 +731,15 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters):
     return params, reward_per_iteration,actis,learning_rate,sigma_v,population_size,parms
     
 def reward_function(params):
-    #model=ANN(D,K)
     model = ANN(D, M, K)
-    #models = ANN(D, M, K)
     model.set_params(params)
-    #models.set_params(params)
 #     # play one episode and return the total reward
     episode_reward = 0
     episode_length = 0
     done = False
     counterr=0
-    state=qp.reset()
-    obs = state[0]
+    state=qpEs.reset()
+    obs = state[0]#np.concatenate((, state_n[1]), axis=None)#state_n#obs[0]
     obs_dim= len(obs)
     if HISTORY_LENGTH >1:
         state =np.zeros(HISTORY_LENGTH*obs_dim)
@@ -676,14 +749,11 @@ def reward_function(params):
     while not done:
         actiona = model.sample_action(state)
         action=np.array(actions_list[actiona])
-#         #perform the action
-        new_state, reward, done,info=qp.step(action)
-#         #update total reward
-        #done=do
+        new_state, reward, done,info=qpEs.step(action)
         obs=new_state[0]
+        done=done
         episode_reward += reward
         episode_length +=1
-#         #update state
         if HISTORY_LENGTH > 1:
             state = np.roll(state, -obs_dim)
             state[-obs_dim:]=obs
@@ -692,11 +762,11 @@ def reward_function(params):
     return episode_reward,actiona,episode_length
 #     
 if __name__=='__main__':
-    #model=ANN(D,K)
     model = ANN(D,M,K)
+    qpEs=Qprotocol(4)
     if len(sys.argv) > 1 and sys.argv[1] =='play':
         #play with a saved model
-        j = np.load('es_qkprotocol_results.npz')
+        j = np.load('es_qkprotocol_results0000.npz')
         best_params = np.concatenate([j['W1'].flatten(), j['b1'], j['W2'].flatten(), j['b2']])
         # in case intial shapes are not correct
         D, M =j['W1'].shape
@@ -744,48 +814,83 @@ if __name__=='__main__':
             sigma=0.002,
             lr=0.006,
             initial_params=params,
-            num_iters=100,
+            num_iters=400,
         )
-            
         model.set_params(best_params)
-        np.savez('es_qkprotocol_results02.npz',
-                 learning_rate_v=learn_r,
-                 sigmav=sigmv,
-                 populat_s=pop_s,
-                 pmeters=parms,
-                 actions_e=actions,
-                 train=rewards,
-                 **model.get_params_dict(),
-        )
-        total_episodes=[]
+        total_episodes0=[]
         solved=0
         episodes=100
         Rewa=0
         cum_re=[]
+        cum_re1=[]
+        total_ep=[]
         steps_ep=[]
+        cumre=0
         for _ in range(episodes):
-            Rew, ac,steps=reward_function(best_params)
-            Rewa+=Rew
-            total_episodes.append(Rew)
-            Rewa += total_episodes[-1]
-            cum_re.append(Rewa)
-            #print(ac)
-            steps_ep.append(steps)
-            if Rew>0:
+            Rew0, ac0,steps0=reward_function(best_params)
+            total_episodes0.append(Rew0)
+            Rewa += total_episodes0[-1]
+            steps_ep.append(steps0)
+            if Rew0>0:
                 solved+=1
-            print("Episode {} Reward per episode {}".format(_,Rew))
-    plt.figure(figsize=(13, 13))
-    plt.plot(cum_re)
-    plt.xlabel(f'Number of Steps of episode')
-    plt.ylabel('Rewards')
-    plt.grid(True,which="both",ls="--",c='gray')
-    plt.show()
-    #x=np.arange(0,len(j['learning_rate_v']))
-    plt.figure(figsize=(13, 13))
-    plt.plot(total_episodes)
-    plt.title('The simulation has been solved the environment Evolutionary Strategy:{}'.format(solved/episodes))
-    plt.show()
-    print('Average steps per episode {}'.format(np.mean(steps_ep)))
+                cumre+=1
+                total_ep.append(1)
+                cum_re1.append(cumre)
+            else:
+                total_ep.append(0)
+error=np.array(qpEs.error_counter)[100:-1]
+plt.figure(figsize=(13, 13))
+print('The simulation has been solved the environment Evolutionary Strategy Equation:{}'.format(solved/episodes))
+print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
+plt.plot(total_ep)
+plt.xlabel(f'Number of episodes')
+plt.ylabel('Rewards')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('The simulation has been solved the environment Evolutionary Strategy Equation:{}'.format(solved/episodes))
+plt.show()
+
+plt.figure(figsize=(13, 13))
+plt.plot(cum_re1,c='orange')
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Q-value')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('The q-value during the training')
+plt.show()
+
+plt.figure(figsize=(13, 13))
+plt.plot(steps_ep,c='grey')
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Steps')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('The steps during the training:{}'.format(np.mean(steps_ep)))
+plt.show()
+
+plt.figure(figsize=(13, 13))
+plt.plot(error,c='red')
+plt.xlabel(f'Number of episodes')
+plt.ylabel('Error')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('Number of errors:{}'.format(sum(error)))
+plt.show()
+
+# interpret
+resultss.append(['Evolutionary Strategy Reward :',solved/episodes])
+resultss.append(['Evolutionary Strategy Steps Reward :',np.mean(steps_ep)])
+resultss.append(['Evolutionary Strategy Error Reward :',sum(error)])
+from scipy.stats import mannwhitneyu
+# seed the random number generator
+if sum(total_ep)!=sum(error):
+    stat, pvalue = mannwhitneyu(total_ep, error)
+    print('Statistics=%.3f, p=%.3f' % (stat, pvalue))
+    if pvalue > 0.05:
+        print('We accept the null hypothesis')
+        resultss.append(['Evolutionary Strategy Reward We accept the null hypothesis:',pvalue])
+    else:
+        print("The p-value is less than we reject the null hypothesis")
+        resultss.append(['Evolutionary Strategy The p-value is less than we reject the null hypothesis:',pvalue])
+else:
+    print('continue')
+
 
 import numpy as np
 import tensorflow as tf
@@ -796,7 +901,6 @@ import scipy.signal
 import time 
 
 def discounted_cumulative_sums(x, discount):
-    # Discounted cumulative sums of vectors for computing rewards-to-go and advantage estimates
     return scipy.signal.lfilter([1], [1, float(-discount)], x[::-1], axis=0)[::-1]
 
 
@@ -818,12 +922,6 @@ class Buffer:
 
     def store(self, observation, action, reward, value, logprobability):
         # Append one step of agent-environment interaction
-        #print('This is the buffer')
-        #print('This is the observation {}'.format(observation))
-        #print('This is the action {}'.format(action))
-        #print('This is the reward {}'.format(reward))
-        #print('This is the value {}'.format(value))
-        #print('This is the logprobability {}'.format(logprobability))
         self.observation_buffer[self.pointer] = observation
         self.action_buffer[self.pointer] = action
         self.reward_buffer[self.pointer] = reward
@@ -882,8 +980,6 @@ def logprobabilities(logits, a):
     )
     return logprobability
 
-# Sample action from actor
-#modela=_build_model()
 @tf.function
 def sample_action(observation):
     logits = actor(observation)
@@ -945,20 +1041,17 @@ steps_per_epoch = 100
 epochs = 100
 gamma = 0.99
 clip_ratio = 0.001
-policy_learning_rate = 0.25#3e-4
-value_function_learning_rate = 0.25#1e-3
+policy_learning_rate = 0.14#3e-4
+value_function_learning_rate = 0.14#1e-3
 train_policy_iterations = 5000
 train_value_iterations = 5000
 lam = 0.97
 target_kl = 0.01
-hidden_sizes = (32, 32)
+hidden_sizes = (16, 16)
 
 # True if you want to render the environment
 render = False
 
-# Initialize the environment and get the dimensionality of the
-# observation space and the number of possible actions
-#env = gym.make("CartPole-v0")
 observation_dimensions = 4#env.observation_space.shape[0]
 num_actions = 12#env.action_space.n
 
@@ -981,6 +1074,9 @@ value_optimizer = keras.optimizers.Adam(learning_rate=value_function_learning_ra
 rewards_during_training=[]
 # Initialize the observation, episode return and episode length
 #observation, episode_return, episode_length = env.reset(), 0, 0
+qpPpo=Qprotocol(4)
+state=qpPpo.reset()
+observation=np.array(state[0])
 actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
 episode_return=0
 episode_length=0
@@ -993,43 +1089,28 @@ for epoch in range(epochs):
     sum_length = 0
     num_episodes = 0
     done=False
-    state=qp.reset()
-    observation=np.array(state[0])
     while done != True:
-    # Iterate over the steps of each epoch
-    #for t in range(steps_per_epoch):
         if render:
-            print(render)
-            #env.render()
+            print(qpPpo.render())
+        if len(observation)==2:
+            observation=observation[0]
         observation = observation.reshape(1, -1)
-        #print('Observation shape {}'.format(observation))
-        #observation=observation[0]
         logits, actiona = sample_action(observation)
         log=np.array(logits[0])
         action_actor.append(log[actiona])
         actiona=actiona[0]
-        #print(actiona)
-        #print(np.argmax(logits[0]))
-        #actiona = np.argmax(logits[0])
-        #print('This are logits {} and actions {}'.format(logits, actiona))
         action=np.array(actions_list[actiona])
-        #print('This is the action {}'.format(action))
-        new_state, reward, done,info=qp.step(action)
-        #observation_new, reward, done, _,op = env.step(action[0].numpy())
+        new_state, reward, done,info=qpPpo.step(action)
         episode_return += reward
         episode_length += 1
-
         # Get the value and log-probability of the action
         value_t = critic(observation)
         q_value_critic.append(value_t)
         logprobability_t = logprobabilities(logits, actiona)
-
         # Store obs, act, rew, v_t, logp_pi_t
         buffer.store(observation, actiona, reward, value_t, logprobability_t)
-
         # Update the observation
         observation = np.array(new_state[0])
-
         # Finish trajectory if reached to a terminal state
         terminal = done
         if terminal: #or (t == steps_per_epoch - 1):
@@ -1039,7 +1120,8 @@ for epoch in range(epochs):
             #print(episode_return)
             sum_length += episode_length
             num_episodes += 1
-            state=qp.reset()
+            state=qpPpo.reset()
+            
             observation=np.array(state[0]) 
             episode_return=0
             episode_length = 0
@@ -1070,83 +1152,113 @@ for epoch in range(epochs):
     print(
         f" Epoch: {epoch + 1}. Mean Return: {sum_return / num_episodes}. Mean Length: {sum_length / num_episodes}"
     )
-#def save_weights():
-#    path= '/home/Optimus/Desktop/QuantumComputingThesis/'
-#    actor.save(path+ '_actor.h5')
-#    critic.save(path+ '_critic.h5')
+def save_weights():
+    path= '/home/Optimus/Desktop/QuantumComputingThesis/'
+    actor.save(path+ '_actorOneQchannel2bit.h5')
+    critic.save(path+ '_criticOneQchannel2bit.h5')
 #def load_weights():
-#    path= '/home/Optimus/Desktop/QuantumComputingThesis/'
-#    critic.load_weights(path+ '_critic.h5')
-#    actor.load_weights(path+ '_actor.h5')
+#    path= '/home/Optimus/Desktop/QuantumComputingThesis/FourDigits/'
+#    critic.load_weights(path+ '_criticFourdigits.h5')
+#    actor.load_weights(path+ '_actorFourdigits.h5')
+#save_weights()
 count=0
 for i in rewards_during_training:
     if i==1.0:
         count+=1
 #save_weights()
 #load_weights()
+total_episodes=[]
+solved=0
+episodes=100
+steps_ep=[]
+r=0
+cumulative_rewards=[]
+# run infinitely many episodes
+for i_episode in range(episodes):
+    # reset environment and episode reward
+    state=qpPpo.reset()
+    observation=state
+    ep_reward = 0
+    done=False
+    steps=0
+    while done!=True:
+        if len(observation)==2:
+            observation=observation[0]
+        observation = observation.reshape(1, -1)
+        logits, actiona = sample_action(observation)
+        actiona=actiona[0]
+        steps+=1
+        action=np.array(actions_list[actiona])
+        new_state, reward, done,info=qpPpo.step(action)
+        print('This is the reward {}'.format(reward))
+        episode_return += reward
+        observation=new_state
+        episode_length += 1
+        if done==True:
+            steps_ep.append(steps)
+            total_episodes.append(reward)
+            r+=reward
+            cumulative_rewards.append(r)
+        if reward==1:
+            solved+=1
+error=np.array(qpPpo.error_counter)[100:-1]
 plt.figure(figsize=(13, 13))
-plt.plot(rewards_during_training)
+print('The simulation has been solved the environment Proximal Policy Optimization Equation:{}'.format(solved/episodes))
+print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
+plt.plot(total_episodes)
 plt.xlabel(f'Number of episodes')
-plt.ylabel('Average Rewards')
+plt.ylabel('Rewards')
 plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Proximal Policy:{}'.format(count))#.format(solved/episodes))
+plt.title('The simulation has been solved the environment Proximal Policy Optimization:{}'.format(solved/episodes))
+plt.show()
+
+plt.figure(figsize=(13, 13))
+plt.plot(cumulative_rewards,c='orange')
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Rewards')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('The cumulative reward')
+plt.show()
+
+plt.figure(figsize=(13, 13))
+plt.plot(steps_ep,c='grey')
+plt.xlabel(f'Number of Steps of episode')
+plt.ylabel('Steps')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('The steps during the training:{}'.format(np.mean(steps_ep)))
+plt.show()
+
+plt.figure(figsize=(13, 13))
+plt.plot(error,c='red')
+plt.xlabel(f'Number of episodes')
+plt.ylabel('Error')
+plt.grid(True,which="both",ls="--",c='gray')
+plt.title('Number of errors:{}'.format(sum(error)))
 plt.show()
 
 plt.figure(figsize=(13, 13))
 plt.plot(q_value_critic)
 plt.plot(action_actor)
 plt.xlabel(f'Number of Steps of episode')
-plt.ylabel('Rewards')
+plt.ylabel('Q-value')
 plt.grid(True,which="both",ls="--",c='gray')
 plt.title('The simulation has been solved the environment Proximal Policy Evaluation')
 plt.show()
-
-
-
-
-total_episodes=[]
-solved=0
-episodes=100
-# run infinitely many episodes
-for i_episode in range(episodes):
-    # reset environment and episode reward
-    state=qp.reset()
-    ep_reward = 0
-    done=False
-    observation=state[0]
-    # for each episode, only run 9999 steps so that we don't
-    # infinite loop while learning
-    while done!=True:
-        # Get the logits, action, and take one step in the environment
-        #observation=observation[0]
-        #if len(observation)==2:
-        #    observation=observation[0]
-        #print('Observation shape {}'.format(observation))
-        #print(type(observation))
-        observation = observation.reshape(1, -1)
-        #print('Observation shape {}'.format(observation))
-        #observation=observation[0]
-        logits, actiona = sample_action(observation)
-        actiona=actiona[0]
-        #print('This are logits {} and actions {}'.format(logits, actiona))
-        action=np.array(actions_list[actiona])
-        #print('This is the action {}'.format(action))
-        new_state, reward, done,info=qp.step(action)
-        #observation_new, reward, done, _,op = env.step(action[0].numpy())
-        print('This is the reward {}'.format(reward))
-        episode_return += reward
-        episode_length += 1
-        observation=new_state[0]
-        if done==True:
-            total_episodes.append(reward)
-        if reward==1:
-            solved+=1
+resultss.append(['Proximal Policy Reward :',solved/episodes])
+resultss.append(['Proximal Policy Steps Reward :',np.mean(steps_ep)])
+resultss.append(['Proxumal Policy Error Reward :',sum(error)])
+from scipy.stats import mannwhitneyu
+# seed the random number generator
+if sum(total_episodes) != sum(error):
+    stat, pvalue = mannwhitneyu(total_episodes, error)
+    print('Statistics=%.3f, p=%.3f' % (stat, pvalue))
+    # interpret
     
-
-plt.figure(figsize=(13, 13))
-plt.plot(total_episodes)
-plt.xlabel(f'Number of Steps of episode')
-plt.ylabel('Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(solved/episodes))
-plt.show()
+    if pvalue > 0.05:
+        print('We accept the null hypothesis')
+        resultss.append(['Proximal Policy Reward We accept the null hypothesis:',pvalue])
+    else:
+        print("The p-value is less than we reject the null hypothesis")
+        resultss.append(['Proximal Policy Reward The p-value is less than we reject the null hypothesis:',pvalue])
+else:
+    print('identical')
