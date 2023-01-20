@@ -1,1 +1,10 @@
+Es Qchannel(data1):	
+0:1 	(1000 population size)
+1:1    (1000 population size)
+00:1  (1000 population size)
+01:1 (10000 population size)	
+10:0 (1000 population size)				
+11:1
+000:1
+001:1 1000 population size
 
