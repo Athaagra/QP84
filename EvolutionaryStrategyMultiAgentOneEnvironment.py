@@ -6,26 +6,7 @@ Created on Tue Oct 25 00:35:33 2022
 """
 
 import numpy as np
-import random
 import matplotlib.pyplot as plt
-from collections import deque
-from keras.models import Sequential 
-from keras.layers import Dense
-from keras.optimizers import Adam
-import tensorflow as tf
-#from tensorflow import keras
-
-callbacks=tf.keras.callbacks.EarlyStopping(
-    monitor='loss',
-    min_delta=0,
-    patience=0,
-    verbose=0,
-    mode='auto',
-    baseline=None,
-    restore_best_weights=True#,
-    #start_from_epoch=0
-    )
-import numpy as np
 class Qprotocol:
      def encoded(data0,q):
          chars="XZ"
@@ -702,7 +683,7 @@ def threebitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7):
     plt.show()
     plt.figure(figsize=(13, 13))
     x=np.arange(0,len(steps_ep))
-    steps=np.repeat(min(steps_ep),len(x))
+    steps=np.repeat(steps_epi,len(x))
     plt.plot(x,steps)
     plt.title('Number of steps per episode {}'+str(len(inp))+''.format(np.mean(steps)))
     plt.xlabel(f'Number of episodes')
@@ -729,7 +710,7 @@ def fourbitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12,
     total_fidelity=[]
     solved=0
     episodes=100
-    Rewa=0
+#    Rewa=0
     cum_re=[]
     total_ep=[]
     steps_ep=[]
@@ -822,8 +803,8 @@ def fourbitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12,
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
-    x=np.arange(0,len(steps_ep))
-    steps=np.repeat(min(steps_ep),len(x))
+    x=np.arange(0,len(steps_epi))
+    steps=np.repeat(steps_epi,len(x))
     plt.plot(x,steps)
     plt.title('Number of steps per episode {} '+str(len(inp))+''.format(np.mean(steps)))
     plt.xlabel(f'Number of episodes')
@@ -879,7 +860,7 @@ onebitOOZZ=evol_strategy([1,1,0,0])
 onebitOOZO=evol_strategy([1,1,0,1])
 onebitOOOZ=evol_strategy([1,1,1,0])
 onebitOOOO=evol_strategy([1,1,1,1])
-fourbitsimulation(np.random.randint(0,2,4),onebitZZZZ,onebitZZZO,onebitZZOZ,onebitZZOO,onebitZOZZ,onebitZOZO,onebitZOOZ,onebitZOOO,onebitOZZZ,onebitOZOZ,onebitOZOO,onebitOOZZ,onebitOOZO,onebitOOOZ,onebitOOOO)
+fourbitsimulation(np.random.randint(0,2,4),onebitZZZZ,onebitZZZO,onebitZZOZ,onebitZZOO,onebitZOZZ,onebitZOZO,onebitZOOZ,onebitZOOO,onebitOZZZ,onebitOZZO,onebitOZOZ,onebitOZOO,onebitOOZZ,onebitOOZO,onebitOOOZ,onebitOOOO)
 onemodE=evol_strategy(np.random.randint(0,2,1))
 twomodE=evol_strategy(np.random.randint(0,2,2))
 threemodE=evol_strategy(np.random.randint(0,2,3))
