@@ -400,6 +400,102 @@ def evol_strategy(mes):
              **model.get_params_dict(),)
     return best_params
 
+def simulationev(inp,bp):
+    total_fidelity=[]
+    solved=0
+    episodes=100
+    Rewa=0
+    cum_re=[]
+    total_ep=[]
+    steps_ep=[]
+    steps_epi=[]
+    cumre=0
+    for _ in range(episodes):
+        inputm=inp
+        Rew, ac,steps,bobk=reward_function(bp,inputm)
+        if Rew==1:
+            bk=bobk
+            steps_ep.append(steps)
+        if Rew>0:
+            if len(inp)==1:
+                tp=LogicalStates[:,inputm].T*LogicalStates[bk,:]
+                tp=tp[0]
+                Fidelity=abs(sum(tp))**2
+                steps_epi.append(steps_ep)
+                total_fidelity.append(Fidelity)
+                solved+=1
+                cumre+=1
+                total_ep.append(1)
+                cum_re.append(cumre)
+            if len(inp)==2:
+                inpus=''.join(str(x) for x in inp)
+                bob_keys=''.join(str(x) for x in bk[:len(inp)])
+                tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bob_keys,:])
+                Fidelity=abs(sum(tp))**2
+                steps_epi.append(steps_ep)
+                total_fidelity.append(Fidelity)
+                solved+=1
+                cumre+=1
+                total_ep.append(1)
+                cum_re.append(cumre)
+            if len(inp)==3:
+                inpus=''.join(str(x) for x in inp)
+                bob_keys=''.join(str(x) for x in bk[:len(inp)])
+                tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bob_keys,:])
+                Fidelity=abs(sum(tp))**2
+                steps_epi.append(steps_ep)
+                total_fidelity.append(Fidelity)
+                solved+=1
+                cumre+=1
+                total_ep.append(1)
+                cum_re.append(cumre)
+            if len(inp)==4:
+                inpus=''.join(str(x) for x in inp)
+                bob_keys=''.join(str(x) for x in bk[:len(inp)])
+                tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bob_keys,:])
+                Fidelity=abs(sum(tp))**2
+                steps_epi.append(steps_ep)
+                total_fidelity.append(Fidelity)
+                solved+=1
+                cumre+=1
+                total_ep.append(1)
+                cum_re.append(cumre)
+        else:
+            total_ep.append(0)
+            print("Episode {} Reward per episode {}".format(_,solved))
+    plt.figure(figsize=(13, 13))
+    plt.plot(cum_re)
+    plt.xlabel(f'Number of Steps of episode')
+    plt.ylabel('Rewards')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    plt.figure(figsize=(13, 13))
+    x=np.arange(0,len(steps_ep))
+    steps=np.repeat(min(steps_ep),len(x))
+    plt.plot(x,steps)
+    plt.title('Number of steps per episode {} '+str(len(inp))+''.format(np.mean(steps)))
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Number of steps')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    plt.figure(figsize=(13, 13))
+    plt.plot(total_ep)
+    plt.title('The simulation has been solved the environment Evolutionary Strategy:{} '+str(len(inp))+''.format(solved/episodes))
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Rewards')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    print('Average steps per episode {}'.format(np.mean(steps_ep)))
+    plt.figure(figsize=(13, 13))
+    plt.plot(total_fidelity)
+    plt.title('The simulation has been solved the environment Evolutionary Strategy fidelity score:{} '+str(len(inp))+''.format(sum(total_fidelity)))
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Fidelity')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+
+
+
 def onebitsimulation(inp,bp,bp1):
     total_fidelity=[]
     solved=0
@@ -444,14 +540,14 @@ def onebitsimulation(inp,bp,bp1):
     x=np.arange(0,len(steps_ep))
     steps=np.repeat(min(steps_ep),len(x))
     plt.plot(x,steps)
-    plt.title('Number of steps per episode {}'.format(np.mean(steps)))
+    plt.title('Number of steps per episode {} '+str(len(inp))+''.format(np.mean(steps)))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Number of steps')
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_ep)
-    plt.title('The simulation has been solved the environment Evolutionary Strategy:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Evolutionary Strategy:{} '+str(len(inp))+''.format(solved/episodes))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
@@ -459,7 +555,7 @@ def onebitsimulation(inp,bp,bp1):
     print('Average steps per episode {}'.format(np.mean(steps_ep)))
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
-    plt.title('The simulation has been solved the environment Evolutionary Strategy fidelity score:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment Evolutionary Strategy fidelity score:{} '+str(len(inp))+''.format(sum(total_fidelity)))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Fidelity')
     plt.grid(True,which="both",ls="--",c='gray')
@@ -502,8 +598,6 @@ def twobitsimulation(inp,bp,bp1,bp2,bp3):
             Fidelity=abs(sum(tp))**2
             steps_epi.append(steps_ep)
             total_fidelity.append(Fidelity)
-            steps_epi.append(steps_ep)
-            total_fidelity.append(Fidelity)
             solved+=1
             cumre+=1
             total_ep.append(1)
@@ -521,14 +615,14 @@ def twobitsimulation(inp,bp,bp1,bp2,bp3):
     x=np.arange(0,len(steps_ep))
     steps=np.repeat(min(steps_ep),len(x))
     plt.plot(x,steps)
-    plt.title('Number of steps per episode {}'.format(np.mean(steps)))
+    plt.title('Number of steps per episode {}'+str(len(inp))+''.format(np.mean(steps)))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Number of steps')
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_ep)
-    plt.title('The simulation has been solved the environment Evolutionary Strategy:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Evolutionary Strategy:{} '+str(len(inp))+''.format(solved/episodes))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
@@ -536,7 +630,7 @@ def twobitsimulation(inp,bp,bp1,bp2,bp3):
     print('Average steps per episode {}'.format(np.mean(steps_ep)))
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
-    plt.title('The simulation has been solved the environment Evolutionary Strategy fidelity score:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment Evolutionary Strategy fidelity score:{} '+str(len(inp))+''.format(sum(total_fidelity)))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Fidelity')
     plt.grid(True,which="both",ls="--",c='gray')
@@ -610,14 +704,14 @@ def threebitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7):
     x=np.arange(0,len(steps_ep))
     steps=np.repeat(min(steps_ep),len(x))
     plt.plot(x,steps)
-    plt.title('Number of steps per episode {}'.format(np.mean(steps)))
+    plt.title('Number of steps per episode {}'+str(len(inp))+''.format(np.mean(steps)))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Number of steps')
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_ep)
-    plt.title('The simulation has been solved the environment Evolutionary Strategy:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Evolutionary Strategy:{} '+str(len(inp))+''.format(solved/episodes))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
@@ -625,7 +719,7 @@ def threebitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7):
     print('Average steps per episode {}'.format(np.mean(steps_ep)))
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
-    plt.title('The simulation has been solved the environment Evolutionary Strategy fidelity score:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment Evolutionary Strategy fidelity score:{} '+str(len(inp))+''.format(sum(total_fidelity)))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Fidelity')
     plt.grid(True,which="both",ls="--",c='gray')
@@ -723,7 +817,7 @@ def fourbitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12,
             print("Episode {} Reward per episode {}".format(_,solved))
     plt.figure(figsize=(13, 13))
     plt.plot(cum_re)
-    plt.xlabel(f'Number of Steps of episode')
+    plt.xlabel(f'Number of Steps of episode '+str(len(inp))+'')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
@@ -731,14 +825,14 @@ def fourbitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12,
     x=np.arange(0,len(steps_ep))
     steps=np.repeat(min(steps_ep),len(x))
     plt.plot(x,steps)
-    plt.title('Number of steps per episode {}'.format(np.mean(steps)))
+    plt.title('Number of steps per episode {} '+str(len(inp))+''.format(np.mean(steps)))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Number of steps')
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_ep)
-    plt.title('The simulation has been solved the environment Evolutionary Strategy:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Evolutionary Strategy:{} '+str(len(inp))+''.format(solved/episodes))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
@@ -746,7 +840,7 @@ def fourbitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12,
     print('Average steps per episode {}'.format(np.mean(steps_ep)))
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
-    plt.title('The simulation has been solved the environment Evolutionary Strategy fidelity score:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment Evolutionary Strategy fidelity score:{} '+str(len(inp))+''.format(sum(total_fidelity)))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Fidelity')
     plt.grid(True,which="both",ls="--",c='gray')
@@ -786,5 +880,11 @@ onebitOOZO=evol_strategy([1,1,0,1])
 onebitOOOZ=evol_strategy([1,1,1,0])
 onebitOOOO=evol_strategy([1,1,1,1])
 fourbitsimulation(np.random.randint(0,2,4),onebitZZZZ,onebitZZZO,onebitZZOZ,onebitZZOO,onebitZOZZ,onebitZOZO,onebitZOOZ,onebitZOOO,onebitOZZZ,onebitOZOZ,onebitOZOO,onebitOOZZ,onebitOOZO,onebitOOOZ,onebitOOOO)
-
-
+onemodE=evol_strategy(np.random.randint(0,2,1))
+twomodE=evol_strategy(np.random.randint(0,2,2))
+threemodE=evol_strategy(np.random.randint(0,2,3))
+fourmodE=evol_strategy(np.random.randint(0,2,4))
+simulationev(np.random.randint(0,2,1),onemodE)
+simulationev(np.random.randint(0,2,2),twomodE)
+simulationev(np.random.randint(0,2,3),threemodE)
+simulationev(np.random.randint(0,2,4),fourmodE)
