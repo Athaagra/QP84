@@ -432,7 +432,7 @@ def proximalpo(inp,ac,cr):
         sum_length = 0
         num_episodes = 0
         done=False
-        state=env.reset(4,inpu)
+        state=env.reset(inpu,4)
         actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
         observation = state[0]
         episode_return=0
@@ -467,7 +467,7 @@ def proximalpo(inp,ac,cr):
                 sum_return += episode_return
                 sum_length += episode_length
                 num_episodes += 1
-                state=env.reset(4,inpu)
+                state=env.reset(inpu,4)
                 observation=np.array(state[0]) 
                 episode_return=0
                 episode_length = 0
