@@ -322,7 +322,31 @@ LogicalStates4bit=pd.DataFrame(LogicalStates4bit, columns=columns4bit)
 LogicalStates2bit=LogicalStates2bit.rename(index={0:'00',1:'01',2:'10',3:'11'})
 LogicalStates3bit=LogicalStates3bit.rename(index={0:'000',1:'001',2:'010',3:'011',4:'100',5:'101',6:'110',7:'111'})
 LogicalStates4bit=LogicalStates4bit.rename(index={0:'0000',1:'0001',2:'0010',3:'0011',4:'0100',5:'0101',6:'0110',7:'0111',8:'1000',9:'1001',10:'1010',11:'1011',12:'1100',13:'1101',14:'1110',15:'1111'})
-#if __name__=="__main__":
+def mannwhitney(total_episodes,error):
+    from scipy.stats import mannwhitneyu
+    # seed the random number generator
+    resultss=[]
+    if sum(total_episodes)!=sum(error):
+        stat, pvalue = mannwhitneyu(total_episodes, error)
+        print('Statistics=%.3f, p=%.3f' % (stat, pvalue))
+        # interpret
+        if pvalue > 0.05:
+            print('We accept the null hypothesis')
+            resultss.append(['Qlearning p-value We accept the null hypothesis:',pvalue])
+        else:
+            print("The p-value is less than we reject the null hypothesis")
+            resultss.append(['Qlearning p-value the p-value is less than we reject the null hypothesis:',pvalue])
+    else:
+        print('identical')
+    plt.figure(figsize=(13, 13))
+    plt.bar(pvalue)
+    plt.xlabel(f'Mannwhitney Test')
+    plt.ylabel('Probability')
+    plt.title(str(resultss))#.format(solved/EPISODES))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    return resultss
+
 def Dqn(inp,ag):
     state_size=4
     actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
@@ -437,7 +461,10 @@ def Dqn(inp,ag):
     plt.title('The Q value')#.format(solved/EPISODES))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
-    return ag
+    error=qpO.error_counter
+    results=mannwhitney(total_episodes,error)
+    results.append(['Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return ag,results
 
 def Dqnsimulation(inpu,ag):
     batch_size=24
@@ -540,7 +567,10 @@ def Dqnsimulation(inpu,ag):
     plt.title('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
-
+    error=env.error_counter
+    results=mannwhitney(total_episodes,error)
+    results.append(['Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 def onebitsimulation(ag,ag1):
     batch_size=24
     EPISODES=100
@@ -640,7 +670,12 @@ def onebitsimulation(ag,ag1):
     plt.title('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    results=mannwhitney(total_episodes,error)
+    results1=mannwhitney(total_episodes,error1)
+    results.append([results1,'Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 
 def twobitsimulation(ag,ag1,ag2,ag3):
     batch_size=24
@@ -766,7 +801,16 @@ def twobitsimulation(ag,ag1,ag2,ag3):
     plt.title('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    error2=env2.error_counter
+    error3=env3.error_counter
+    results=mannwhitney(total_episodes,error)
+    results1=mannwhitney(total_episodes,error1)
+    results2=mannwhitney(total_episodes,error2)
+    results3=mannwhitney(total_episodes,error3)
+    results.append([results1,results2,results3,'Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 def threebitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7):
     batch_size=24
     EPISODES=100
@@ -951,7 +995,24 @@ def threebitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7):
     plt.title('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    error2=env2.error_counter
+    error3=env3.error_counter
+    error4=env4.error_counter
+    error5=env5.error_counter
+    error6=env6.error_counter
+    error7=env7.error_counter
+    results=mannwhitney(total_episodes,error)
+    results1=mannwhitney(total_episodes,error1)
+    results2=mannwhitney(total_episodes,error2)
+    results3=mannwhitney(total_episodes,error3)
+    results4=mannwhitney(total_episodes,error4)
+    results5=mannwhitney(total_episodes,error5)
+    results6=mannwhitney(total_episodes,error6)
+    results7=mannwhitney(total_episodes,error7)
+    results.append([results1,results2,results3,results4,results5,results6,results7,'Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 
 def fourbitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7,ag8,ag9,ag10,ag11,ag12,ag13,ag14,ag15):
     batch_size=24
@@ -1248,50 +1309,98 @@ def fourbitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7,ag8,ag9,ag10,ag11,ag12,ag13
     plt.title('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    error2=env2.error_counter
+    error3=env3.error_counter
+    error4=env4.error_counter
+    error5=env5.error_counter
+    error6=env6.error_counter
+    error7=env7.error_counter
+    error8=env8.error_counter
+    error9=env9.error_counter
+    error10=env10.error_counter
+    error11=env11.error_counter
+    error12=env12.error_counter
+    error13=env13.error_counter
+    error14=env14.error_counter
+    error15=env15.error_counter
+    results=mannwhitney(total_episodes,error)
+    results1=mannwhitney(total_episodes,error1)
+    results2=mannwhitney(total_episodes,error2)
+    results3=mannwhitney(total_episodes,error3)
+    results4=mannwhitney(total_episodes,error4)
+    results5=mannwhitney(total_episodes,error5)
+    results6=mannwhitney(total_episodes,error6)
+    results7=mannwhitney(total_episodes,error7)
+    results8=mannwhitney(total_episodes,error8)
+    results9=mannwhitney(total_episodes,error9)
+    results10=mannwhitney(total_episodes,error10)
+    results11=mannwhitney(total_episodes,error11)
+    results12=mannwhitney(total_episodes,error12)
+    results13=mannwhitney(total_episodes,error13)
+    results14=mannwhitney(total_episodes,error14)
+    results15=mannwhitney(total_episodes,error15)
+    results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 state_size=4
 actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
 action_size=len(actions_list)#env.action_space.n
 
 agent = DQNAgent(state_size, action_size)
-agent=Dqn(np.random.randint(0,2,1),agent)
-Dqnsimulation(np.random.randint(0,2,1),agent)
+agent,r=Dqn(np.random.randint(0,2,1),agent)
+print(r,file='randomOneBitDqnTraining.txt')
+r=Dqnsimulation(np.random.randint(0,2,1),agent)
+print(r,file='randomOneBitDqnTesting.txt')
 agent = DQNAgent(state_size, action_size)
-agent=Dqn(np.random.randint(0,2,2),agent)
+agent,r=Dqn(np.random.randint(0,2,2),agent)
+print(r,file='randomTwoBitDqnTraining.txt')
 Dqnsimulation(np.random.randint(0,2,2),agent)
+print(r,file='randomTwoBitDqnTesting.txt')
 agent = DQNAgent(state_size, action_size)
-agent=Dqn(np.random.randint(0,2,3),agent)
-Dqnsimulation(np.random.randint(0,2,3),agent)
-agent = DQNAgent(state_size, action_size)
-agent=Dqn(np.random.randint(0,2,4),agent)
-Dqnsimulation(np.random.randint(0,2,4),agent)
-
+agent,r=Dqn(np.random.randint(0,2,3),agent)
+print(r,file='randomThreeBitDqnTraining.txt')
+r=Dqnsimulation(np.random.randint(0,2,3),agent)
+print(r,file='randomThreeBitDqnTesting.txt')
+agent,r = DQNAgent(state_size, action_size)
+agent,r=Dqn(np.random.randint(0,2,4),agent)
+print(r,file='randomFourBitDqnTraining.txt')
+r=Dqnsimulation(np.random.randint(0,2,4),agent)
+print(r,file='randomFourBitDqnTesting.txt')
 
 ##Training
 agent = DQNAgent(state_size, action_size)
-agent=Dqn([0],agent,onebit=True)
+agent,r=Dqn([0],agent,onebit=True)
+print(r,file='randomOne[0]BitDqnTraining.txt')
 agentO = DQNAgent(state_size, action_size)
-agentO=Dqn([1],agentO,onebit=True)
-onebitsimulation(agent,agentO)
+agentO,r=Dqn([1],agentO,onebit=True)
+print(r,file='randomOne[1]BitDqnTraining.txt')
+r=onebitsimulation(agent,agentO)
+print(r,file='randomOneBitMULTIDqnTesting.txt')
+
 
 agent = DQNAgent(state_size, action_size)
 agent.load("./QP84DQNd1[0]CPD.h5")
 agent1 = DQNAgent(state_size, action_size)
 agent1.load("./QP84DQNd1[1]CPD.h5")
-onebitsimulation(agent,agent1)
-
+r=onebitsimulation(agent,agent1)
+print(r,file='randomOneBitMULTIDqnTesting.txt')
 
 
 agent = DQNAgent(state_size, action_size)
-agent=Dqn([0,0],agent,twobit=True)
+agent,r=Dqn([0,0],agent,twobit=True)
+print(r,file='randomTwo[0,0]BitDqnTraining.txt')
 agentO = DQNAgent(state_size, action_size)
-agentO=Dqn([0,1],agentO,twobit=True)
+agentO,r=Dqn([0,1],agentO,twobit=True)
+print(r,file='randomTwo[0,1]BitDqnTraining.txt')
 agentT = DQNAgent(state_size, action_size)
-agentT=Dqn([1,0],agentT,twobit=True)
+agentT,r=Dqn([1,0],agentT,twobit=True)
+print(r,file='randomTwo[1,0]BitDqnTraining.txt')
 agentTh = DQNAgent(state_size, action_size)
-agentTh=Dqn([1,0],agentTh,twobit=True)
-twobitsimulation(agent,agentO,agentT,agentTh)
-
+agentTh,r=Dqn([1,1],agentTh,twobit=True)
+print(r,file='randomTwo[1,1]BitDqnTraining.txt')
+r=twobitsimulation(agent,agentO,agentT,agentTh)
+print(r,file='randomTwoMULTIBitDqnTraining.txt')
 
 agent3 = DQNAgent(state_size, action_size)
 agent3.load("./QP84DQNd1[0,0]CPD.h5")
@@ -1301,25 +1410,36 @@ agent1 = DQNAgent(state_size, action_size)
 agent1.load("./QP84DQNd1[1,0]CPD.h5")
 agent = DQNAgent(state_size, action_size)
 agent.load("./QP84DQNd1[1,1]CPD.h5")
-twobitsimulation(agent,agent1,agent2,agent3)
+r=twobitsimulation(agent,agent1,agent2,agent3)
+print(r,file='randomTwoBitMULTIDqnTesting.txt')
+
 
 agent=DQNAgent(state_size, action_size)
-agent=Dqn([0,0,0],agent)
+agent,r=Dqn([0,0,0],agent)
+print(r,file='randomThree[0,0,0]BitDqnTraining.txt')
 agentO=DQNAgent(state_size, action_size)
-agentO=Dqn([0,0,1],agentO)
+agentO,r=Dqn([0,0,1],agentO)
+print(r,file='randomThree[0,0,1]BitDqnTraining.txt')
 agentT=DQNAgent(state_size, action_size)
-agentT=Dqn([0,1,0],agentT)
+agentT,r=Dqn([0,1,0],agentT)
+print(r,file='randomThree[0,1,0]BitDqnTraining.txt')
 agentTh=DQNAgent(state_size, action_size)
-agentTh=Dqn([0,1,1],agentTh)
+agentTh,r=Dqn([0,1,1],agentTh)
+print(r,file='randomThree[0,1,1]BitDqnTraining.txt')
 agentFo=DQNAgent(state_size, action_size)
-agentFo=Dqn([1,0,0],agentFo)
+agentFo,r=Dqn([1,0,0],agentFo)
+print(r,file='randomThree[1,0,0]BitDqnTraining.txt')
 agentFi=DQNAgent(state_size, action_size)
-agentFi=Dqn([1,0,1],agentFi)
+agentFi,r=Dqn([1,0,1],agentFi)
+print(r,file='randomThree[1,0,1]BitDqnTraining.txt')
 agentSi=DQNAgent(state_size, action_size)
-agentSi=Dqn([1,1,0],agentSi)
+agentSi,r=Dqn([1,1,0],agentSi)
+print(r,file='randomThree[1,1,0]BitDqnTraining.txt')
 agentSe=DQNAgent(state_size, action_size)
-agentSe=Dqn([1,1,1],agentSe)
-threebitsimulation(agent,agentO,agentT,agentTh,agentFo,agentFi,agentSi,agentSe)
+agentSe,r=Dqn([1,1,1],agentSe)
+print(r,file='randomThree[1,1,1]BitDqnTraining.txt')
+r=threebitsimulation(agent,agentO,agentT,agentTh,agentFo,agentFi,agentSi,agentSe)
+print(r,file='randomThreeMULTIBitDqnTesting.txt')
 
 agent7 = DQNAgent(state_size, action_size)
 agent7.load("./QP84DQNd1[1, 1, 1]CPD.h5")
@@ -1337,42 +1457,59 @@ agent1 = DQNAgent(state_size, action_size)
 agent1.load("./QP84DQNd1[0, 0, 1]CPD.h5")
 agent = DQNAgent(state_size, action_size)
 agent.load("./QP84DQNd1[0, 0, 0]CPD.h5")
-threebitsimulation(agent,agent1,agent2,agent3,agent4,agent5,agent6,agent7)
+r=threebitsimulation(agent,agent1,agent2,agent3,agent4,agent5,agent6,agent7)
+print(r,file='randomThreeMULTIBitDqnTesting.txt')
 
 agent=DQNAgent(state_size, action_size)
-agent=Dqn([0,0,0,0],agent)
+agent,r=Dqn([0,0,0,0],agent)
+print(r,file='randomFour[0,0,0,0]BitDqnTraining.txt')
 agentO=DQNAgent(state_size, action_size)
-agentO=Dqn([0,0,0,1],agentO)
+agentO,r=Dqn([0,0,0,1],agentO)
+print(r,file='randomFour[0,0,0,1]BitDqnTraining.txt')
 agentT=DQNAgent(state_size, action_size)
-agentT=Dqn([0,0,1,0],agentT)
+agentT,r=Dqn([0,0,1,0],agentT)
+print(r,file='randomFour[0,0,1,0]BitDqnTraining.txt')
 agentTh=DQNAgent(state_size, action_size)
-agentTh=Dqn([0,0,1,1],agentTh)
+agentTh,r=Dqn([0,0,1,1],agentTh)
+print(r,file='randomFour[0,0,1,1]BitDqnTraining.txt')
 agentFo=DQNAgent(state_size, action_size)
-agentFo=Dqn([0,1,0,0],agentFo)
+agentFo,r=Dqn([0,1,0,0],agentFo)
+print(r,file='randomFour[0,1,0,0]BitDqnTraining.txt')
 agentFi=DQNAgent(state_size, action_size)
-agentFi=Dqn([0,1,0,1],agentFi)
+agentFi,r=Dqn([0,1,0,1],agentFi)
+print(r,file='randomFour[0,1,0,1]BitDqnTraining.txt')
 agentSi=DQNAgent(state_size, action_size)
-agentSi=Dqn([0,1,1,0],agentSi)
+agentSi,r=Dqn([0,1,1,0],agentSi)
+print(r,file='randomFour[0,1,1,0]BitDqnTraining.txt')
 agentSe=DQNAgent(state_size, action_size)
-agentSe=Dqn([0,1,1,1],agentSe)
+agentSe,r=Dqn([0,1,1,1],agentSe)
+print(r,file='randomFour[0,1,1,1]BitDqnTraining.txt')
 agentEi=DQNAgent(state_size, action_size)
-agentEi=Dqn([1,0,0,0],agentEi)
+agentEi,r=Dqn([1,0,0,0],agentEi)
+print(r,file='randomFour[1,0,0,0]BitDqnTraining.txt')
 agentN=DQNAgent(state_size, action_size)
-agentN=Dqn([1,0,0,1],agentN)
+agentN,r=Dqn([1,0,0,1],agentN)
+print(r,file='randomFour[1,0,0,1]BitDqnTraining.txt')
 agentTe=DQNAgent(state_size, action_size)
-agentTe=Dqn([1,0,1,0],agentTe)
+agentTe,r=Dqn([1,0,1,0],agentTe)
+print(r,file='randomFour[1,0,1,0]BitDqnTraining.txt')
 agentEl=DQNAgent(state_size, action_size)
-agentEl=Dqn([1,0,1,1],agentEl)
+agentEl,r=Dqn([1,0,1,1],agentEl)
+print(r,file='randomFour[1,0,1,1]BitDqnTraining.txt')
 agentTw=DQNAgent(state_size, action_size)
-agentTw=Dqn([1,1,0,0],agentTw)
+agentTw,r=Dqn([1,1,0,0],agentTw)
+print(r,file='randomFour[1,1,0,0]BitDqnTraining.txt')
 agentThr=DQNAgent(state_size, action_size)
-agentThr=Dqn([1,1,0,1],agentThr)
+agentThr,r=Dqn([1,1,0,1],agentThr)
+print(r,file='randomFour[1,1,0,1]BitDqnTraining.txt')
 agentFor=DQNAgent(state_size, action_size)
-agentFor=Dqn([1,1,1,0],agentFor)
+agentFor,r=Dqn([1,1,1,0],agentFor)
+print(r,file='randomFour[1,1,1,0]BitDqnTraining.txt')
 agentFif=DQNAgent(state_size, action_size)
-agentFif=Dqn([1,1,1,1],agentFif)
-fourbitsimulation(agent,agentO,agentT,agentTh,agentFo,agentFi,agentSi,agentSe,agentEi,agentN,agentTe,agentEl,agentTw,agentThr,agentFor,agentFif)
-
+agentFif,r=Dqn([1,1,1,1],agentFif)
+print(r,file='randomFour[1,1,1,1]BitDqnTraining.txt')
+r=fourbitsimulation(agent,agentO,agentT,agentTh,agentFo,agentFi,agentSi,agentSe,agentEi,agentN,agentTe,agentEl,agentTw,agentThr,agentFor,agentFif)
+print(r,file='randomFourMULTIBitDqnTraining.txt')
 
 agent15 = DQNAgent(state_size, action_size)
 agent15.load("./QP84DQN0000.h5")
@@ -1406,4 +1543,5 @@ agent1 = DQNAgent(state_size, action_size)
 agent1.load("./QP84DQN1110.h5")
 agent = DQNAgent(state_size, action_size)
 agent.load("./QP84DQN1.h5")
-fourbitsimulation(agent,agent1,agent2,agent3,agent4,agent5,agent6,agent7,agent8,agent9,agent10,agent11,agent12,agent13,agent14,agent15)    
+r=fourbitsimulation(agent,agent1,agent2,agent3,agent4,agent5,agent6,agent7,agent8,agent9,agent10,agent11,agent12,agent13,agent14,agent15)
+print(r,file='randomFourMULTIBitDqnTraining.txt')    
