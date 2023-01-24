@@ -648,7 +648,7 @@ def onebitsimulation(inp,ac,ac1):
         done2=False
         observation1 = state[0]
         observation2 = state1[0]
-        steps_ep=1
+        steps_ep=0
         while done1!=True or done2!=True:
             print('This is the episode {}'.format(i_episode))
             observation1 = observation1.reshape(1, -1)
