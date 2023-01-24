@@ -1,6 +1,13 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jan 23 17:15:59 2023
+
+@author: Optimus
+"""
+
 """
 Created on Fri Nov 18 00:55:15 2022
-
 @author: Optimus
 """
 
@@ -13,25 +20,20 @@ from tensorflow.keras import layers
 import scipy.signal 
 """
 The environment for Level1
-
 Actions for Alice:
 0 - Idle
 1 - Read next bit from data1, store in datalog
 2 - Place datalog in Bob's mailbox
-
 Actions for Bob:
 0 - Idle
 1 - Read next bit from mailbox
 2 - Write 0 to key
 3 - Write 1 to key
-
 Actions are input to the environment as tuples
 e.g. (1,0) means Alice takes action 1 and Bob takes action 0
-
 Rewards accumulate: negative points for wrong guess, 
 positive points for correct guess
 Game terminates with correct key or N moves
-
 """
 class Qprotocol:
      def encoded(data0,q):
@@ -74,9 +76,9 @@ class Qprotocol:
          return np.array(data2)
      def __init__(self,maxm):
          self.max_moves = maxm
-         self.data0=np.random.randint(0,2,4)
-         self.data1 = np.random.randint(0,2,4)
-         self.data2 = np.random.randint(0,2,4)
+         self.data0=np.random.randint(0,2,1)
+         self.data1 = np.random.randint(0,2,1)
+         self.data2 = np.random.randint(0,2,1)
          # State for alice
          #self.data1 = np.random.randint(0,2,2)
          #self.data2 = np.random.randint(0,2,2)
@@ -105,6 +107,7 @@ class Qprotocol:
          self.action_history.append(action)
          # Reset reward
          reward = 0
+         bk=[0]
          # If we have used 10 actions, game over
          if len(self.action_history) > self.max_moves:
              reward = 0
@@ -144,43 +147,53 @@ class Qprotocol:
              # Add 0 to key - Bob should decide to take this action based on his datalog
          if( action_bob == 2 ):
              self.bob_key.append(0)
+             #self.bob_key=np.hstack((self.bob_key,0))
                  # reward = 0
              if( len(self.bob_key) == len(self.data2) ):
-             # self.done = True
-                 print('This is data1 {} and data2 {} and Bob key {}'.format(self.data1,self.data2,self.bob_key))
-                 a=[self.bob_key[i]==self.data2[i] for i in range(len(self.bob_key))]
+             # self.done = 
+                 #self.bob_key=np.array(self.bob_key)
+                 #print('This is data1 {} and data2 {} and Bob key {}'.format(self.data1,self.data2,self.bob_key))
+                 a=[self.bob_key[i]==self.data1[i] for i in range(len(self.bob_key))]
                  a=np.array(a)
                  if a.all():
                  #if( np.array(self.bob_key) == self.data2 ):
                      reward = +1
+                     #bk=self.bob_key
                      self.cumulative_reward += reward
                      self.done = True
                  else:
                      reward = -1
+                     #self.done=True
+                     #bk=self.bob_key
                      self.cumulative_reward += reward
                      # Add 1 to key - Bob should decide to take this action based on his datalog
          if( action_bob == 3 ):
              self.bob_key.append(1)
+             #self.bob_key=np.hstack((self.bob_key,1))
              # reward = 0
              # If bob wrote enough bits
              if( len(self.bob_key) == len(self.data2) ):
                  # self.done = True
-                 print('This is data1 {} and data2 {} bob key {}'.format(self.data1,self.data2,self.bob_key))
-                 a=[self.bob_key[i]==self.data2[i] for i in range(len(self.bob_key))]
+                 #self.bob_key=np.array(self.bob_key)
+                 a=[self.bob_key[i]==self.data1[i] for i in range(len(self.bob_key))]
                  a=np.array(a)
                  if a.all():
                  #if( np.array(self.bob_key) == self.data2 ):
                      reward = +1
                      self.cumulative_reward += reward
                      self.done = True
+                     #print('This is data1 {} and data2 {} bob key {}'.format(self.data1,self.data2,self.bob_key))
+
                  else:
                      reward = -1
-         self.cumulative_reward += reward
-#         # Update the actions that alice and bob took
+                     #self.done=True
+                     self.cumulative_reward += reward
+         # Update the actions that alice and bob took
          self.alice_observation[(len(self.action_history)-1)%len(self.alice_observation)] = action[0]
          self.bob_observation = np.concatenate(([self.bob_has_mail], self.bob_datalog))
          state = (self.alice_observation, self.bob_observation)
-         return state, reward, self.done, {'action_history':self.action_history}
+         #bk=self.bob_key
+         return state, reward, self.done, {'action_history':self.action_history},self.bob_key
      def reset(self,maxm,inputm,encode=encoded,decode=decoded):
          import numpy as np
          self.max_moves = maxm
@@ -188,12 +201,9 @@ class Qprotocol:
          #self.data0=np.random.randint(0,2,2)
          #self.data1 = np.random.randint(0,2,2)
          self.data1=np.array(inputm)
-         print(self.data1)
-         #self.data2 = np.random.randint(0,2,2)
          self.data0=encode(self.data1,len(self.data1))
          #print(self.data0)
          self.data2=decode(self.data0,len(self.data0))
-         #self.data2=self.data1
          z=[self.data1[i]==self.data2[i] for i in range(len(self.data1))]
          z=np.array(z)
          if z.all():
@@ -207,7 +217,7 @@ class Qprotocol:
          self.bob_has_mail = 0
          self.bob_datalog = -1*np.ones(1)
          self.bob_mailbox = []
-         self.bob_key = []
+         self.bob_key = []#np.array([])#[]
          # General environment properties
          self.done = False
          self.action_history = []
@@ -251,12 +261,6 @@ class Buffer:
     
     def store(self, observation, action, reward, value, logprobability):
         # Append one step of agent-environment interaction
-        #print('This is the buffer')
-        #print('This is the observation {}'.format(observation))
-        #print('This is the action {}'.format(action))
-        #print('This is the reward {}'.format(reward))
-        #print('This is the value {}'.format(value))
-        #print('This is the logprobability {}'.format(logprobability))
         self.observation_buffer[self.pointer] = observation
         self.action_buffer[self.pointer] = action
         self.reward_buffer[self.pointer] = reward
@@ -314,41 +318,16 @@ def logprobabilities(logits, a):
         tf.one_hot(a, num_actions) * logprobabilities_all, axis=1
     )
     return logprobability
-#def _build_model():
-#    model = Sequential()
-    #24
-#    model.add(Dense(12, input_dim=4, activation='softmax'))
-    #model.add(Dense(24, activation='relu'))
-    #model.add(Dense(self.action_size, activation='linear'))
-    #model.add(Dense(self.action_size, activation=''))
-#    model.compile(loss='categorical_crossentropy',metrics=['accuracy'],optimizer=Adam(lr=0.25))
-#    return model 
 
-# Sample action from actor
-#modela=_build_model()
 @tf.function
 def sample_action(observation):
     logits = actor(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action1(observation):
     logits = actor1(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
@@ -356,182 +335,84 @@ def sample_action1(observation):
 @tf.function
 def sample_action2(observation):
     logits = actor2(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action3(observation):
     logits = actor3(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action4(observation):
     logits = actor4(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action5(observation):
     logits = actor5(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action6(observation):
     logits = actor6(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action7(observation):
     logits = actor7(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action8(observation):
     logits = actor8(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action9(observation):
     logits = actor9(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action10(observation):
     logits = actor10(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action11(observation):
     logits = actor11(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action12(observation):
     logits = actor12(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action13(observation):
     logits = actor13(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action14(observation):
     logits = actor14(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
 @tf.function
 def sample_action15(observation):
     logits = actor15(observation)
-    #logits = model.predict(observation)
-    #logits=np.array(logits)
-    #print(logits)
-    #print('This are the logits {}'.format(tf.squeeze(logits, 1), axis=1))
-    #print('This is the action {}'.format(action))
-    #print('This is the categorical {}'.format(tf.squeeze(tf.random.categorical(logits, 1), axis=1)))
-    #action = np.argmax(logits[0])
     action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
     return logits, action
 
@@ -601,10 +482,8 @@ hidden_sizes = (16, 16)
 render = False
 
 # Initialize the environment and get the dimensionality of the
-# observation space and the number of possible actions
-#env = gym.make("CartPole-v0")
-observation_dimensions = 4#env.observation_space.shape[0]
-num_actions = 12#env.action_space.n
+observation_dimensions = 4
+num_actions = 12
 
 # Initialize the buffer
 buffer = Buffer(observation_dimensions, steps_per_epoch)
@@ -728,144 +607,221 @@ rewards_during_training=[]
 # Initialize the observation, episode return and episode length
 #observation, episode_return, episode_length = env.reset(), 0, 0
 # Iterate over the number of epochs
-q_value_critic=[]
-action_actor=[]
-mx=4
-env=Qprotocol(mx)
-for epoch in range(epochs):
-    inpu=[1,1,1,1]
-    # Initialize the sum of the returns, lengths and number of episodes for each epoch
-    sum_return = 0
-    sum_length = 0
-    num_episodes = 0
-    done=False
-    state=env.reset(mx,inpu)
-    #observation=np.array(state_n[0])
-    actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
-    observation = state[0]#np.concatenate((state_n[0], state_n[1]), axis=None)
-    episode_return=0
-    episode_length=0
-    while done != True:
-    # Iterate over the steps of each epoch
-    #for t in range(steps_per_epoch):
-        if render:
-            print(render)
-            #env.render()
-        
-        # Get the logits, action, and take one step in the environment
-        #observation=observation[0]
-        #if len(observation)==2:
-        #    observation=observation[0]
-        #print('Observation shape {}'.format(observation))
-        #print(type(observation))
-        observation = observation.reshape(1, -1)
-        #print('Observation shape {}'.format(observation))
-        #observation=observation[0]
-        logits, actiona = sample_action(observation)
-        actiona=np.array(actiona)
-        print('this is the action {}'.format(actiona))
-        print('logits {}'.format(logits))
-        log=np.array(logits[0])
-        actiona=actiona[0]
-        action_actor.append(log[actiona])
-        #actiona=actiona[0]
-        #print(actiona)
-        #print(np.argmax(logits[0]))
-        #actiona = np.argmax(logits[0])
-        #print('This are logits {} and actions {}'.format(logits, actiona))
-        action=np.array(actions_list[actiona])
-        #print('This is the action {}'.format(action))
-        new_state,reward,done,info=env.step(action)
-        #observation_new, reward, done, _,op = env.step(action[0].numpy())
-        episode_return += reward
-        episode_length += 1
-        
-        # Get the value and log-probability of the action
-        value_t = critic(observation)
-        q_value_critic.append(value_t)
-        logprobability_t = logprobabilities(logits, actiona)
-        
-        # Store obs, act, rew, v_t, logp_pi_t
-        buffer.store(observation, actiona, reward, value_t, logprobability_t)
-        
-        # Update the observation
-        observation = np.array(new_state[0])
-        
-        # Finish trajectory if reached to a terminal state
-        terminal = done
-        done=done
-        if terminal: #or (t == steps_per_epoch - 1):
-            last_value = 0 if done else critic(observation.reshape(1, -1))
-            buffer.finish_trajectory(last_value)
-            sum_return += episode_return
-            #print(episode_return)
-            sum_length += episode_length
-            num_episodes += 1
-            state=env.reset(4,inpu)
-            
-            observation=np.array(state[0]) 
-            episode_return=0
-            episode_length = 0
-    
-    # Get values from the buffer
-    (
-        observation_buffer,
-        action_buffer,
-        advantage_buffer,
-        return_buffer,
-        logprobability_buffer,
-    ) = buffer.get()
-    
-    # Update the policy and implement early stopping using KL divergence
-    for _ in range(train_policy_iterations):
-        kl = train_policy(
-            observation_buffer, action_buffer, logprobability_buffer, advantage_buffer
+LogicalStates=np.array([[1,0],[0,1]])
+LogicalStates2bit=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+LogicalStates3bit=np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
+LogicalStates4bit=np.array([[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]])
+import pandas as pd
+columns2bit=['00','01','10','11']
+columns3bit=['000','001','010','011','100','101','110','111']
+columns4bit=['0000','0001','0010','0011','0100','0101','0110','0111','1000','1001','1010','1011','1100','1101','1110','1111']
+LogicalStates2bit=pd.DataFrame(LogicalStates2bit, columns=columns2bit)
+LogicalStates3bit=pd.DataFrame(LogicalStates3bit, columns=columns3bit)
+LogicalStates4bit=pd.DataFrame(LogicalStates4bit, columns=columns4bit)
+LogicalStates2bit=LogicalStates2bit.rename(index={0:'00',1:'01',2:'10',3:'11'})
+LogicalStates3bit=LogicalStates3bit.rename(index={0:'000',1:'001',2:'010',3:'011',4:'100',5:'101',6:'110',7:'111'})
+LogicalStates4bit=LogicalStates4bit.rename(index={0:'0000',1:'0001',2:'0010',3:'0011',4:'0100',5:'0101',6:'0110',7:'0111',8:'1000',9:'1001',10:'1010',11:'1011',12:'1100',13:'1101',14:'1110',15:'1111'})
+def proximalpo(inp):
+    inpu=inp
+    q_value_critic=[]
+    action_actor=[]
+    env=Qprotocol(4)
+    for epoch in range(epochs):
+        # Initialize the sum of the returns, lengths and number of episodes for each epoch
+        sum_return = 0
+        sum_length = 0
+        num_episodes = 0
+        done=False
+        state=env.reset(4,inpu)
+        actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
+        observation = state[0]
+        episode_return=0
+        episode_length=0
+        while done != True:
+        # Iterate over the steps of each epoch
+            if render:
+                print(render)
+            observation = observation.reshape(1, -1)
+            logits, actiona = sample_action(observation)
+            actiona=np.array(actiona)
+            log=np.array(logits[0])
+            actiona=actiona[0]
+            action_actor.append(log[actiona])
+            action=np.array(actions_list[actiona])
+            new_state,reward,done,info,bob_key=env.step(action)
+            episode_return += reward
+            episode_length += 1        
+            # Get the value and log-probability of the action
+            value_t = critic(observation)
+            q_value_critic.append(value_t)
+            logprobability_t = logprobabilities(logits, actiona)
+            # Store obs, act, rew, v_t, logp_pi_t
+            buffer.store(observation, actiona, reward, value_t, logprobability_t)
+            # Update the observation
+            observation = np.array(new_state[0])
+            # Finish trajectory if reached to a terminal state
+            terminal = done
+            if terminal: #or (t == steps_per_epoch - 1):
+                last_value = 0 if done else critic(observation.reshape(1, -1))
+                buffer.finish_trajectory(last_value)
+                sum_return += episode_return
+                sum_length += episode_length
+                num_episodes += 1
+                state=env.reset(4,inpu)
+                observation=np.array(state[0]) 
+                episode_return=0
+                episode_length = 0
+        # Get values from the buffer
+        (
+            observation_buffer,
+            action_buffer,
+            advantage_buffer,
+            return_buffer,
+            logprobability_buffer,
+        ) = buffer.get()    
+        # Update the policy and implement early stopping using KL divergence
+        for _ in range(train_policy_iterations):
+            kl = train_policy(
+                observation_buffer, action_buffer, logprobability_buffer, advantage_buffer
+            )
+            if kl > 1.5 * target_kl:
+                # Early Stopping
+                break
+    #    print('This is the kl {}'.format(kl))
+        # Update the value function
+        for _ in range(train_value_iterations):
+            train_value_function(observation_buffer, return_buffer)
+        rewards_during_training.append(sum_return / num_episodes)
+        # Print mean return and length for each epoch
+        print(
+            f" Epoch: {epoch + 1}. Mean Return: {sum_return / num_episodes}. Mean Length: {sum_length / num_episodes}"
         )
-        if kl > 1.5 * target_kl:
-            # Early Stopping
-            break
-#    print('This is the kl {}'.format(kl))
-    # Update the value function
-    for _ in range(train_value_iterations):
-        train_value_function(observation_buffer, return_buffer)
-    rewards_during_training.append(sum_return / num_episodes)
-    # Print mean return and length for each epoch
-    print(
-        f" Epoch: {epoch + 1}. Mean Return: {sum_return / num_episodes}. Mean Length: {sum_length / num_episodes}"
-    )
+    def save_weights(inpt,maxm):
+        path= '/home/Optimus/Desktop/QuantumComputingThesis/'
+        actor.save(path+ '_actor'+str(maxm)+'One'+str(inpt)+'.h5')
+        critic.save(path+ '_critic'+str(maxm)+'One'+str(inpt)+'.h5')
+    count=0
+    for i in rewards_during_training:
+        if i==1.0:
+            count+=1
+    plt.figure(figsize=(13, 13))
+    plt.plot(rewards_during_training)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Average Rewards')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.title('The simulation has been solved the environment Proximal Policy:{}'.format(count))#.format(solved/episodes))
+    plt.show()
+    plt.figure(figsize=(13, 13))
+    plt.plot(q_value_critic)
+    plt.plot(action_actor)
+    plt.xlabel(f'Number of Steps of episode')
+    plt.ylabel('Rewards')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation')
+    plt.show()
+    save_weights(inpu,4)
+    return actor,critic
+
+def onebitsimulation(inp,ac,cr):
+    total_episodes=[]
+    solved=0
+    episodes=100
+    env=Qprotocol(4)
+    env1=Qprotocol(4)
+    steps_epi=[]
+    cum_rev=0
+    cumulative_reward=[]
+    r=0
+    total_fidelity=[]
+    count=0
+    actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
+    # run infinitely many episodes
+    for i_episode in range(episodes):
+        # reset environment and episode reward
+        state=env.reset(inp,4)
+        state1=env1.reset(inp,4)
+        ep_reward = 0
+        done1=False
+        done2=False
+        observation1 = state[0]
+        observation2 = state1[0]
+        steps_ep=1
+        while done1!=True or done2!=True:
+            print('This is the episode {}'.format(i_episode))
+            observation1 = observation1.reshape(1, -1)
+            observation2 = observation2.reshape(1, -1)
+            logits, actiona = sample_action(observation1)
+            logits, actionb = sample_action1(observation2)
+            actiona=actiona[0]
+            actionb=actionb[0]
+            actionAA=np.array(actions_list[actiona])
+            actionBB=np.array(actions_list[actionb])
+            stat1,reward1,done1,action_h1,bob_key1=env.step(actionAA)
+            stat2,reward2,done2,action_h2,bob_key2=env1.step(actionBB)
+            observation1=stat1[0]
+            observation2=stat2[0]
+            steps_ep+=1
+            if done1:
+                bob_key=bob_key1
+            if done2:
+                bob_key=bob_key2
+            if done1==True or done2==True:
+                if len(inp)==1 and len(bob_key)==len(inp):
+                    tp=LogicalStates[:,inp].T*LogicalStates[bob_key,:]
+                    tp=tp[0]
+                    Fidelity=abs(sum(tp))**2
+                    total_fidelity.append(Fidelity)
+                if reward1>0 or reward2>0 :
+                    count+=1
+                    steps_epi.append(steps_ep)
+                    if reward1==1 or reward2==1:
+                        r=1
+                        solved+=1
+                    else:
+                        r=-1
+                    print(r)
+                    cum_rev+=r
+                    cumulative_reward.append(cum_rev)
+                    total_episodes.append(r)
+                    break
+        
+    
+    plt.figure(figsize=(13, 13))
+    plt.plot(total_episodes)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Rewards')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(solved/episodes))
+    plt.show()
+    
+    plt.figure(figsize=(13, 13))
+    plt.plot(cumulative_reward)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Rewards')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(np.max(cumulative_reward)))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    
+    plt.figure(figsize=(13, 13))
+    plt.plot(total_fidelity)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Rewards')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(sum(total_fidelity)))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    
+    plt.figure(figsize=(13, 13))
+    plt.plot(steps_epi)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Rewards')
+    plt.title('The number of steps:{}'.format(np.average(steps_epi)))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
 
 
-
-
-def save_weights(inpt,maxm):
-    path= '/home/Optimus/Desktop/QuantumComputingThesis/'
-    actor.save(path+ '_actor'+str(maxm)+'One'+str(inpt)+'.h5')
-    critic.save(path+ '_critic'+str(maxm)+'One'+str(inpt)+'.h5')
-
-count=0
-for i in rewards_during_training:
-    if i==1.0:
-        count+=1
-#save_weights()
-#load_weights()
-plt.figure(figsize=(13, 13))
-plt.plot(rewards_during_training)
-plt.xlabel(f'Number of episodes')
-plt.ylabel('Average Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Proximal Policy:{}'.format(count))#.format(solved/episodes))
-plt.show()
-
-plt.figure(figsize=(13, 13))
-plt.plot(q_value_critic)
-plt.plot(action_actor)
-plt.xlabel(f'Number of Steps of episode')
-plt.ylabel('Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Proximal Policy Evaluation')
-plt.show()
-
-save_weights(inpu,mx)
+actor,critic=proximalpo([0])
+actor1,criti1c=proximalpo([1])
+onebitsimulation(np.random.ramdint(0,2,1),actor,actor1)
 
 def load_weightsOne():
     path= '/home/Optimus/Desktop/QuantumComputingThesis/'
@@ -1027,32 +983,6 @@ load_weightsEight()
 #load_weightsThirteen()
 #load_weightsFourteen()
 #load_weightsFifteen()
-
-
-
-count=0
-for i in rewards_during_training:
-    if i==1.0:
-        count+=1
-#save_weights()
-#load_weights()
-plt.figure(figsize=(13, 13))
-plt.plot(rewards_during_training)
-plt.xlabel(f'Number of episodes')
-plt.ylabel('Average Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Proximal Policy:{}'.format(count))#.format(solved/episodes))
-plt.show()
-
-plt.figure(figsize=(13, 13))
-plt.plot(q_value_critic)
-plt.plot(action_actor)
-plt.xlabel(f'Number of Steps of episode')
-plt.ylabel('Rewards')
-plt.grid(True,which="both",ls="--",c='gray')
-plt.title('The simulation has been solved the environment Proximal Policy Evaluation')
-plt.show()
-
 
 
 
