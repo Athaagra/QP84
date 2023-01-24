@@ -375,8 +375,6 @@ def train_value_function(observation_buffer, return_buffer):
 
 
 # Hyperparameters of the PPO algorithm
-steps_per_epoch = 100
-epochs = 100
 gamma = 0.99
 clip_ratio = 0.01
 policy_learning_rate = 3e-4
@@ -393,7 +391,7 @@ render = False
 # Initialize the environment and get the dimensionality of the
 observation_dimensions = 4
 num_actions = 12
-
+steps_per_epoch=100
 # Initialize the buffer
 buffer = Buffer(observation_dimensions, steps_per_epoch)
 
@@ -421,11 +419,40 @@ LogicalStates4bit=pd.DataFrame(LogicalStates4bit, columns=columns4bit)
 LogicalStates2bit=LogicalStates2bit.rename(index={0:'00',1:'01',2:'10',3:'11'})
 LogicalStates3bit=LogicalStates3bit.rename(index={0:'000',1:'001',2:'010',3:'011',4:'100',5:'101',6:'110',7:'111'})
 LogicalStates4bit=LogicalStates4bit.rename(index={0:'0000',1:'0001',2:'0010',3:'0011',4:'0100',5:'0101',6:'0110',7:'0111',8:'1000',9:'1001',10:'1010',11:'1011',12:'1100',13:'1101',14:'1110',15:'1111'})
+def mannwhitney(total_episodes,error):
+    from scipy.stats import mannwhitneyu
+    # seed the random number generator
+    resultss=[]
+    if sum(total_episodes)!=sum(error):
+        stat, pvalue = mannwhitneyu(total_episodes, error)
+        print('Statistics=%.3f, p=%.3f' % (stat, pvalue))
+        # interpret
+        if pvalue > 0.05:
+            print('We accept the null hypothesis')
+            resultss.append(['Qlearning p-value We accept the null hypothesis:',pvalue])
+        else:
+            print("The p-value is less than we reject the null hypothesis")
+            resultss.append(['Qlearning p-value the p-value is less than we reject the null hypothesis:',pvalue])
+    else:
+        print('identical')
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(13, 13))
+    plt.bar(pvalue)
+    plt.xlabel(f'Mannwhitney Test')
+    plt.ylabel('Probability')
+    plt.title(str(resultss))#.format(solved/EPISODES))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    return resultss
 def proximalpo(inp,ac,cr):
     inpu=inp
+    epochs = 100
+    steps_ep=[]
     q_value_critic=[]
     action_actor=[]
     env=Qprotocol(4)
+    cum=[]
+    cumre=0
     for epoch in range(epochs):
         # Initialize the sum of the returns, lengths and number of episodes for each epoch
         sum_return = 0
@@ -466,7 +493,10 @@ def proximalpo(inp,ac,cr):
                 buffer.finish_trajectory(last_value)
                 sum_return += episode_return
                 sum_length += episode_length
+                steps_ep.append(episode_length)
                 num_episodes += 1
+                cumre+=reward
+                cum.append(cumre)
                 state=env.reset(inpu,4)
                 observation=np.array(state[0]) 
                 episode_return=0
@@ -514,13 +544,16 @@ def proximalpo(inp,ac,cr):
     plt.figure(figsize=(13, 13))
     plt.plot(q_value_critic)
     plt.plot(action_actor)
-    plt.xlabel(f'Number of Steps of episode')
-    plt.ylabel('Rewards')
+    plt.xlabel(f'loss of episode')
+    plt.ylabel('Q-value')
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('The simulation has been solved the environment Proximal Policy Evaluation')
     plt.show()
     save_weights(inpu,4)
-    return actor,critic
+    error=env.error_counter
+    results=mannwhitney(rewards_during_training,error)
+    results.append(['Reward:'+count,'Cumulative:'+cum[-1],'Steps:'+np.mean(steps_ep)])
+    return actor,critic,results
 
 def pposimulation(inp,ac):
     total_episodes=[]
@@ -593,6 +626,7 @@ def pposimulation(inp,ac):
                 else:
                     r=-1
                     cum_rev+=r
+                    solved+=0
                     cumulative_reward.append(cum_rev)
                     total_episodes.append(r)
                     break
@@ -607,7 +641,7 @@ def pposimulation(inp,ac):
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format((cumulative_reward[-1])))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -624,6 +658,10 @@ def pposimulation(inp,ac):
     plt.title('The number of steps:{}'.format(np.average(steps_epi)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
+    error=env.error_counter
+    results=mannwhitney(rewards_during_training,error)
+    results.append(['Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 
 def onebitsimulation(inp,ac,ac1):
     total_episodes=[]
@@ -714,7 +752,12 @@ def onebitsimulation(inp,ac,ac1):
     plt.title('The number of steps:{}'.format(np.average(steps_epi)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    results=mannwhitney(total_episodes,error)
+    results1=mannwhitney(total_episodes,error1)
+    results.append([results1,'Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 
 def twobitsimulation(inp,ac,ac1,ac2,ac3):
     total_episodes=[]
@@ -831,6 +874,16 @@ def twobitsimulation(inp,ac,ac1,ac2,ac3):
     plt.title('The number of steps:{}'.format(np.average(steps_epi)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
+    error=env.error_counter
+    error1=env1.error_counter
+    error2=env2.error_counter
+    error3=env3.error_counter
+    results=mannwhitney(total_episodes,error)
+    results1=mannwhitney(total_episodes,error1)
+    results2=mannwhitney(total_episodes,error2)
+    results3=mannwhitney(total_episodes,error3)
+    results.append([results1,results2,results3,'Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 
 
 def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
@@ -996,8 +1049,24 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
     plt.title('The number of steps:{}'.format(np.average(steps_epi)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
-
-
+    error=env.error_counter
+    error1=env1.error_counter
+    error2=env2.error_counter
+    error3=env3.error_counter
+    error4=env4.error_counter
+    error5=env5.error_counter
+    error6=env6.error_counter
+    error7=env7.error_counter
+    results=mannwhitney(total_episodes,error)
+    results1=mannwhitney(total_episodes,error1)
+    results2=mannwhitney(total_episodes,error2)
+    results3=mannwhitney(total_episodes,error3)
+    results4=mannwhitney(total_episodes,error4)
+    results5=mannwhitney(total_episodes,error5)
+    results6=mannwhitney(total_episodes,error6)
+    results7=mannwhitney(total_episodes,error7)
+    results.append([results1,results2,results3,results4,results5,results6,results7,'Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,ac13,ac14,ac15):
     total_episodes=[]
     solved=0
@@ -1257,7 +1326,40 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
     plt.title('The number of steps:{}'.format(np.average(steps_epi)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    error2=env2.error_counter
+    error3=env3.error_counter
+    error4=env4.error_counter
+    error5=env5.error_counter
+    error6=env6.error_counter
+    error7=env7.error_counter
+    error8=env8.error_counter
+    error9=env9.error_counter
+    error10=env10.error_counter
+    error11=env11.error_counter
+    error12=env12.error_counter
+    error13=env13.error_counter
+    error14=env14.error_counter
+    error15=env15.error_counter
+    results=mannwhitney(total_episodes,error)
+    results1=mannwhitney(total_episodes,error1)
+    results2=mannwhitney(total_episodes,error2)
+    results3=mannwhitney(total_episodes,error3)
+    results4=mannwhitney(total_episodes,error4)
+    results5=mannwhitney(total_episodes,error5)
+    results6=mannwhitney(total_episodes,error6)
+    results7=mannwhitney(total_episodes,error7)
+    results8=mannwhitney(total_episodes,error8)
+    results9=mannwhitney(total_episodes,error9)
+    results10=mannwhitney(total_episodes,error10)
+    results11=mannwhitney(total_episodes,error11)
+    results12=mannwhitney(total_episodes,error12)
+    results13=mannwhitney(total_episodes,error13)
+    results14=mannwhitney(total_episodes,error14)
+    results15=mannwhitney(total_episodes,error15)
+    results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    return results
 
 def load_weightsOne():
     path= '/home/Optimus/Desktop/QuantumComputingThesis/'
@@ -1390,32 +1492,41 @@ value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, Non
 
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
-actor,critic=proximalpo(np.random.randint(0,2,1),actor,critic)
-pposimulation(np.random.randint(0,2,1), actor)
+actor,critic,r=proximalpo(np.random.randint(0,2,1),actor,critic)
+print(r,file='randomOneBitPPOTraining.txt')
+r=pposimulation(np.random.randint(0,2,1), actor)
+print(r,file='randomOneBitPPOTesting.txt')
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
-actor,critic=proximalpo(np.random.randint(0,2,2),actor,critic)
-pposimulation(np.random.randint(0,2,2), actor)
+actor,critic,r=proximalpo(np.random.randint(0,2,2),actor,critic)
+print(r,file='randomTwoBitPPOTraining.txt')
+r=pposimulation(np.random.randint(0,2,2), actor)
+print(r,file='randomTwoBitPPOTesting.txt')
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
-actor,critic=proximalpo(np.random.randint(0,2,3),actor,critic)
-pposimulation(np.random.randint(0,2,3), actor)
+actor,critic,r=proximalpo(np.random.randint(0,2,3),actor,critic)
+print(r,file='randomThreeBitPPOTraining.txt')
+r=pposimulation(np.random.randint(0,2,3), actor)
+print(r,file='randomtThreeBitPPOTesting.txt')
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
-actor,critic=proximalpo(np.random.randint(0,2,4),actor,critic)
-pposimulation(np.random.randint(0,2,4), actor)
-
+actor,critic,r=proximalpo(np.random.randint(0,2,4),actor,critic)
+print(r,file='randomFourBitPPOraining.txt')
+r=pposimulation(np.random.randint(0,2,4), actor)
+print(r,file='randomFourBitPPOTesting.txt')
 
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
 actor1 = keras.Model(inputs=observation_input, outputs=logits)
 critic1 = keras.Model(inputs=observation_input, outputs=value)
-actor,critic=proximalpo([0],actor,critic)
-actor1,criti1c=proximalpo([1],actor1,critic1)
+actor,critic,r=proximalpo([0],actor,critic)
+print(r,file='randomOneBit[0]PPOTraining.txt')
+actor1,criti1c,r=proximalpo([1],actor1,critic1)
+print(r,file='randomOneBit[1]PPOTraining.txt')
 #load_weightsOne()
 #load_weightsTwo()
-onebitsimulation(np.random.randint(0,2,1),actor,actor1)
-
+r=onebitsimulation(np.random.randint(0,2,1),actor,actor1)
+print(r,file='randomOneBitMULTIPPOTesting.txt')
 
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
@@ -1426,15 +1537,20 @@ critic2 = keras.Model(inputs=observation_input, outputs=value)
 actor3 = keras.Model(inputs=observation_input, outputs=logits)
 critic3 = keras.Model(inputs=observation_input, outputs=value)
 
-actor,critic=proximalpo([0,0],actor,critic)
-actor1,critic1=proximalpo([0,1],actor1,critic1)
-actor2,critic2=proximalpo([1,0],actor2,critic2)
-actor3,critic3=proximalpo([1,1],actor3,critic3)
+actor,critic,r=proximalpo([0,0],actor,critic)
+print(r,file='randomTwoBit[0,0]PPOTraining.txt')
+actor1,critic1,r=proximalpo([0,1],actor1,critic1)
+print(r,file='randomTwoBit[0,1]PPOTraining.txt')
+actor2,critic2,r=proximalpo([1,0],actor2,critic2)
+print(r,file='randomTwoBit[1,0]PPOTraining.txt')
+actor3,critic3,r=proximalpo([1,1],actor3,critic3)
+print(r,file='randomTwoBit[1,1]PPOTraining.txt')
 #load_weightsOne()
 #load_weightsTwo()
 #load_weightsThree()
 #load_weightsFour()
-twobitsimulation(np.random.randint(0,2,2),actor,actor1,actor2,actor3)
+r=twobitsimulation(np.random.randint(0,2,2),actor,actor1,actor2,actor3)
+print(r,file='randomTwoBitMULTIPPOTesting.txt')
 
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
@@ -1453,14 +1569,22 @@ critic6 = keras.Model(inputs=observation_input, outputs=value)
 actor7 = keras.Model(inputs=observation_input, outputs=logits)
 critic7 = keras.Model(inputs=observation_input, outputs=value)
 
-actor,critic=proximalpo([0,0,0],actor,critic)
-actor1,critic1=proximalpo([0,0,1],actor1,critic1)
-actor2,critic2=proximalpo([0,1,0],actor2,critic2)
-actor3,critic3=proximalpo([0,1,1],actor3,critic3)
-actor4,critic4=proximalpo([1,0,0],actor4,critic4)
-actor5,critic5=proximalpo([1,0,1],actor5,critic5)
-actor6,critic6=proximalpo([1,1,0],actor6,critic6)
-actor7,critic7=proximalpo([1,1,1],actor7,critic7)
+actor,critic,r=proximalpo([0,0,0],actor,critic)
+print(r,file='randomThreeBit[0,0,0]PPOTraining.txt')
+actor1,critic1,r=proximalpo([0,0,1],actor1,critic1)
+print(r,file='randomThreeBit[0,0,1]PPOTraining.txt')
+actor2,critic2,r=proximalpo([0,1,0],actor2,critic2)
+print(r,file='randomThreeBit[0,1,0]PPOTraining.txt')
+actor3,critic3,r=proximalpo([0,1,1],actor3,critic3)
+print(r,file='randomThreeBit[0,1,1]PPOTraining.txt')
+actor4,critic4,r=proximalpo([1,0,0],actor4,critic4)
+print(r,file='randomThreeBit[1,0,0]PPOTraining.txt')
+actor5,critic5,r=proximalpo([1,0,1],actor5,critic5)
+print(r,file='randomThreeBit[1,0,1]PPOTraining.txt')
+actor6,critic6,r=proximalpo([1,1,0],actor6,critic6)
+print(r,file='randomThreeBit[1,1,0]PPOTraining.txt')
+actor7,critic7,r=proximalpo([1,1,1],actor7,critic7)
+print(r,file='randomThreeBit[1,1,1]PPOTraining.txt')
 #load_weightsOne()
 #load_weightsTwo()
 #load_weightsThree()
@@ -1469,7 +1593,8 @@ actor7,critic7=proximalpo([1,1,1],actor7,critic7)
 #load_weightsSix()
 #load_weightsSeven()
 #load_weightsEight()
-threebitsimulation(np.random.randint(0,2,3),actor,actor1,actor2,actor3,actor4,actor5,actor6,actor7)
+r=threebitsimulation(np.random.randint(0,2,3),actor,actor1,actor2,actor3,actor4,actor5,actor6,actor7)
+print(r,file='randomThreeBitMULTIPPOTesting.txt')
 
 
 actor = keras.Model(inputs=observation_input, outputs=logits)
@@ -1505,21 +1630,37 @@ critic14 = keras.Model(inputs=observation_input, outputs=value)
 actor15 = keras.Model(inputs=observation_input, outputs=logits)
 critic15 = keras.Model(inputs=observation_input, outputs=value)
 actor,critic=proximalpo([0,0,0,0],actor,critic)
+print(r,file='randomFourBit[0,0,0,0]PPOTraining.txt')
 actor1,critic1=proximalpo([0,0,0,1],actor1,critic1)
+print(r,file='randomFourBit[0,0,0,1]PPOTraining.txt')
 actor2,critic2=proximalpo([0,0,1,0],actor2,critic2)
+print(r,file='randomFourBit[0,0,1,0]PPOTraining.txt')
 actor3,critic3=proximalpo([0,0,1,1],actor3,critic3)
+print(r,file='randomFourBit[0,0,1,1]PPOTraining.txt')
 actor4,critic4=proximalpo([0,1,0,0],actor4,critic4)
+print(r,file='randomFourBit[0,1,0,0]PPOTraining.txt')
 actor5,critic5=proximalpo([0,1,0,1],actor5,critic5)
+print(r,file='randomFourBit[0,1,0,1]PPOTraining.txt')
 actor6,critic6=proximalpo([0,1,1,0],actor6,critic6)
+print(r,file='randomFourBit[0,1,1,0]PPOTraining.txt')
 actor7,critic7=proximalpo([0,1,1,1],actor7,critic7)
+print(r,file='randomFourBit[0,1,1,1]PPOTraining.txt')
 actor,critic=proximalpo([1,0,0,0],actor8,critic8)
+print(r,file='randomFourBit[1,0,0,0]PPOTraining.txt')
 actor1,critic1=proximalpo([1,0,0,1],actor9,critic9)
+print(r,file='randomFourBit[1,0,0,1]PPOTraining.txt')
 actor2,critic2=proximalpo([1,0,1,0],actor10,critic10)
+print(r,file='randomFourBit[1,0,1,0]PPOTraining.txt')
 actor3,critic3=proximalpo([1,0,1,1],actor11,critic11)
+print(r,file='randomFourBit[1,0,1,1]PPOTraining.txt')
 actor4,critic4=proximalpo([1,1,0,0],actor12,critic12)
+print(r,file='randomFourBit[1,1,0,0]PPOTraining.txt')
 actor5,critic5=proximalpo([1,1,0,1],actor13,critic13)
+print(r,file='randomFourBit[1,1,0,1]PPOTraining.txt')
 actor6,critic6=proximalpo([1,1,1,0],actor14,critic14)
+print(r,file='randomFourBit[1,1,1,0]PPOTraining.txt')
 actor7,critic7=proximalpo([1,1,1,1],actor15,critic15)
+print(r,file='randomFourBit[1,1,1,1]PPOTraining.txt')
 #load_weightsOne()
 #load_weightsTwo()
 #load_weightsThree()
@@ -1534,4 +1675,5 @@ actor7,critic7=proximalpo([1,1,1,1],actor15,critic15)
 #load_weightsThirteen()
 #load_weightsFourteen()
 #load_weightsFifteen()
-fourbitsimulation(np.random.randint(0,2,4),actor,actor1,actor2,actor3,actor4,actor5,actor6,actor7,actor8,actor9,actor10,actor11,actor12,actor13,actor14,actor15)
+r=fourbitsimulation(np.random.randint(0,2,4),actor,actor1,actor2,actor3,actor4,actor5,actor6,actor7,actor8,actor9,actor10,actor11,actor12,actor13,actor14,actor15)
+print(r,file='randomFourBitMULTIPPOTesting.txt')
