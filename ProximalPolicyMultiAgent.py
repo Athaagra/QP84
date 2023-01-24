@@ -542,7 +542,7 @@ def pposimulation(inp,ac):
         ep_reward = 0
         done=False
         observation = state[0]
-        steps_ep=1
+        steps_ep=0
         while done!=True:
             print('This is the episode {}'.format(i_episode))
             observation = observation.reshape(1, -1)
@@ -559,6 +559,7 @@ def pposimulation(inp,ac):
                     tp=LogicalStates[:,inp].T*LogicalStates[bob_key,:]
                     tp=tp[0]
                     Fidelity=abs(sum(tp))**2
+                    steps_epi.append(steps_ep)
                     total_fidelity.append(Fidelity)
                 if len(inp)==2 and len(bob_key)==len(inp):
                     inpus=''.join(str(x) for x in inp)
@@ -587,6 +588,7 @@ def pposimulation(inp,ac):
                     count+=1
                     r=1
                     solved+=1
+                    total_episodes.append(r)
                     break
                 else:
                     r=-1
@@ -599,20 +601,20 @@ def pposimulation(inp,ac):
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(np.max(cumulative_reward)))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
-    plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(sum(total_fidelity)))
+    plt.ylabel('Fidelity')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -667,6 +669,7 @@ def onebitsimulation(inp,ac,ac1):
             if done2:
                 bob_key=bob_key2
             if done1==True or done2==True:
+                steps_epi.append(steps_ep)
                 if len(inp)==1 and len(bob_key)==len(inp):
                     tp=LogicalStates[:,inp].T*LogicalStates[bob_key,:]
                     tp=tp[0]
@@ -674,13 +677,11 @@ def onebitsimulation(inp,ac,ac1):
                     total_fidelity.append(Fidelity)
                 if reward1>0 or reward2>0 :
                     count+=1
-                    steps_epi.append(steps_ep)
-                    if reward1==1 or reward2==1:
-                        r=1
-                        solved+=1
-                    else:
-                        r=-1
-                    print(r)
+                    r=1
+                    solved+=1
+                    total_episodes.append(r)
+                else:
+                    r=-1
                     cum_rev+=r
                     cumulative_reward.append(cum_rev)
                     total_episodes.append(r)
@@ -690,20 +691,20 @@ def onebitsimulation(inp,ac,ac1):
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(np.max(cumulative_reward)))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
-    plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(sum(total_fidelity)))
+    plt.ylabel('Fidelity')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -746,7 +747,7 @@ def twobitsimulation(inp,ac,ac1,ac2,ac3):
         observation2 = state1[0]
         observation3 = state2[0]
         observation4 = state3[0]
-        steps_ep=1
+        steps_ep=0
         while done1!=True or done2!=True or done3!=True or done4!=True:
             print('This is the episode {}'.format(i_episode))
             observation1 = observation1.reshape(1, -1)
@@ -783,17 +784,18 @@ def twobitsimulation(inp,ac,ac1,ac2,ac3):
             if done4:
                 bob_key=bob_key4
             if done1==True or done2==True or done3==True or done4==True:
+                steps_epi.append(steps_ep)
                 if len(inp)==2 and len(bob_key)==len(inp):
                     inpus=''.join(str(x) for x in inp)
                     bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
                     tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bob_keys,:])
                     Fidelity=abs(sum(tp))**2
-                    steps_epi.append(steps_ep)
                     total_fidelity.append(Fidelity)
                 if reward1==1 or reward2==1 or reward3==1 or reward4==1:
                     count+=1
                     r=1
                     solved+=1
+                    total_episodes.append(r)
                     break
                 else:
                     r=-1
@@ -806,20 +808,20 @@ def twobitsimulation(inp,ac,ac1,ac2,ac3):
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
-    plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(np.max(cumulative_reward)))
+    plt.ylabel('Cumulative')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
-    plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(sum(total_fidelity)))
+    plt.ylabel('Fidelity')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -878,7 +880,7 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
         observation6 = state5[0]
         observation7 = state6[0]
         observation8 = state7[0]
-        steps_ep=1
+        steps_ep=0
         while done1!=True or done2!=True or done3!=True or done4!=True or done5!=True or done6!=True or done7!=True or done8!=True:
             print('This is the episode {}'.format(i_episode))
             observation1 = observation1.reshape(1, -1)
@@ -947,17 +949,18 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
             if done8:
                 bob_key=bob_key8
             if done1==True or done2==True or done3==True or done4==True or done5==True or done6==True or done7==True or done8==True:
+                steps_epi.append(steps_ep)
                 if len(inp)==3 and len(bob_key)==len(inp):
                     inpus=''.join(str(x) for x in inp)
                     bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
                     tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bob_keys,:])
                     Fidelity=abs(sum(tp))**2
-                    steps_epi.append(steps_ep)
                     total_fidelity.append(Fidelity)
                 if reward1==1 or reward2==1 or reward3==1 or reward4==1 or reward5==1 or reward6==1 or reward7==1 or reward8==1:
                     count+=1
                     r=1
                     solved+=1
+                    total_episodes.append(r)
                     break
                 else:
                     r=-1
@@ -970,20 +973,20 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(np.max(cumulative_reward)))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -1074,7 +1077,7 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
         observation14 = state13[0]
         observation15 = state14[0]
         observation16 = state15[0]
-        steps_ep=1
+        steps_ep=0
         while done1!=True or done2!=True or done3!=True or done4!=True or done5!=True or done6!=True or done7!=True or done8!=True or done9!=True or done10!=True or done11!=True or done12!=True or done13!=True or done14!=True or done15!=True or done16!=True:
             print('This is the episode {}'.format(i_episode))
             observation1 = observation1.reshape(1, -1)
@@ -1207,17 +1210,18 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
             if done16:
                 bob_key=bob_key16
             if done1==True or done2==True or done3==True or done4==True or done5==True or done6==True or done7==True or done8==True or done9==True or done10==True or done11==True or done12==True or done13==True or done14==True or done15==True or done16==True:
+                steps_epi.append(steps_ep)
                 if len(inp)==4 and len(bob_key)==len(inp):
                     inpus=''.join(str(x) for x in inp)
                     bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
                     tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bob_keys,:])
                     Fidelity=abs(sum(tp))**2
-                    steps_epi.append(steps_ep)
                     total_fidelity.append(Fidelity)
                 if reward1==1 or reward2==1 or reward3==1 or reward4==1 or reward5==1 or reward6==1 or reward7==1 or reward8==1 or reward9==1 or reward10==1 or reward11==1 or reward12==1 or reward13==1 or reward14==1 or reward15==1 or reward16==1:
                     count+=1
                     r=1
                     solved+=1
+                    total_episodes.append(r)
                     break
                 else:
                     r=-1
@@ -1230,20 +1234,20 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(np.max(cumulative_reward)))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation cumulative:{}'.format(np.max(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
-    plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation:{}'.format(sum(total_fidelity)))
+    plt.ylabel('Fidelity')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
