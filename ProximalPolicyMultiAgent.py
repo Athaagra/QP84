@@ -194,7 +194,7 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          #bk=self.bob_key
          return state, reward, self.done, {'action_history':self.action_history},self.bob_key
-     def reset(self,maxm,inputm,encode=encoded,decode=decoded):
+     def reset(self,inputm,maxm,encode=encoded,decode=decoded):
          import numpy as np
          self.max_moves = maxm
          # State for alice
@@ -537,6 +537,7 @@ def pposimulation(inp,ac):
     # run infinitely many episodes
     for i_episode in range(episodes):
         # reset environment and episode reward
+        print('This is input {}'.format(inp))
         state=env.reset(inp,4)
         ep_reward = 0
         done=False
