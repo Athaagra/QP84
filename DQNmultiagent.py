@@ -439,6 +439,108 @@ def Dqn(inp,ag):
     plt.show()
     return ag
 
+def Dqnsimulation(inpu,ag):
+    batch_size=24
+    EPISODES=100
+    solved=0
+    steps_epi=[]
+    qval=[]
+    qval_pr=[]
+    total_episodes=[]
+    env=Qprotocol(4)
+    env1=Qprotocol(4)
+    cumre=0
+    cumulative_reward=[]
+    total_fidelity=[]
+    for e in range(EPISODES):
+            inp=inpu
+            state_n=env.reset(4,inp)
+            steps_ep=0
+            reward_episode=[]
+            done=False
+            state = np.array(state_n[0])
+            state=np.reshape(state, [1, state_size])
+            while done!=True:
+                actiona=ag.act(state)
+                actiona=np.array(actiona)
+                actionA = actions_list[actiona]
+                state,reward,done,action_h,bob_key=env.step(actionA)
+                steps_ep+=1
+                next_state=np.array(state[0])
+                next_state= np.reshape(next_state, [1, state_size])
+                state = next_state
+                if done==True:
+                    bk=bob_key
+                    steps_epi.append(steps_ep)
+                    if len(inp)==1 and len(inp)==len(bk):
+                        tp=LogicalStates[:,inp].T*LogicalStates[bk,:]
+                        tp=tp[0]
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    if len(inp)==2 and len(inp)==len(bk):
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bk[:len(inp)])
+                        tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    if len(inp)==3 and len(inp)==len(bk):
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bk[:len(inp)])
+                        tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    if len(inp)==4 and len(inp)==len(bk):
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bk[:len(inp)])
+                        tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    else:
+                        total_fidelity.append(0)
+                    if reward==1:
+                        solved+=1
+                        cumre+=1
+                        reward_episode.append(1)
+                        cumulative_reward.append(cumre)
+                        break
+                    else:
+                        solved+=0
+                        cumre-=1
+                        reward_episode.append(0)
+                        cumulative_reward.append(cumre)
+                        break
+            total_episodes.append(reward_episode)
+    plt.figure(figsize=(13, 13))
+    print('The simulation has been solved the environment DQN:{}'.format(solved/EPISODES))
+    print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
+    plt.plot(total_episodes)
+    plt.xlabel(f'Number of Steps of episode')
+    plt.ylabel('Rewards')
+    plt.title('The simulation has been solved the environment Deep Q learning:{}'.format(solved/EPISODES))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    plt.figure(figsize=(13, 13))
+    plt.plot(cumulative_reward)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Rewards')
+    plt.title('The simulation has been solved the environment Deep Q learning:{}'.format(cumulative_reward[-1]))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    plt.figure(figsize=(13, 13))
+    plt.plot(total_fidelity)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Fidelity')
+    plt.title('The simulation has been solved the environment Deep Q learning:{}'.format(sum(total_fidelity)))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    plt.figure(figsize=(13, 13))
+    plt.plot(steps_epi)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Number of steps')
+    plt.title('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+
 def onebitsimulation(ag,ag1):
     batch_size=24
     EPISODES=100
@@ -1150,6 +1252,21 @@ def fourbitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7,ag8,ag9,ag10,ag11,ag12,ag13
 state_size=4
 actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
 action_size=len(actions_list)#env.action_space.n
+
+agent = DQNAgent(state_size, action_size)
+agent=Dqn(np.random.randint(0,2,1),agent)
+Dqnsimulation(np.random.randint(0,2,1),agent)
+agent = DQNAgent(state_size, action_size)
+agent=Dqn(np.random.randint(0,2,2),agent)
+Dqnsimulation(np.random.randint(0,2,2),agent)
+agent = DQNAgent(state_size, action_size)
+agent=Dqn(np.random.randint(0,2,3),agent)
+Dqnsimulation(np.random.randint(0,2,3),agent)
+agent = DQNAgent(state_size, action_size)
+agent=Dqn(np.random.randint(0,2,4),agent)
+Dqnsimulation(np.random.randint(0,2,4),agent)
+
+
 ##Training
 agent = DQNAgent(state_size, action_size)
 agent=Dqn([0],agent,onebit=True)
@@ -1186,11 +1303,6 @@ agent = DQNAgent(state_size, action_size)
 agent.load("./QP84DQNd1[1,1]CPD.h5")
 twobitsimulation(agent,agent1,agent2,agent3)
 
-
-
-
-
-
 agent=DQNAgent(state_size, action_size)
 agent=Dqn([0,0,0],agent)
 agentO=DQNAgent(state_size, action_size)
@@ -1209,7 +1321,6 @@ agentSe=DQNAgent(state_size, action_size)
 agentSe=Dqn([1,1,1],agentSe)
 threebitsimulation(agent,agentO,agentT,agentTh,agentFo,agentFi,agentSi,agentSe)
 
-
 agent7 = DQNAgent(state_size, action_size)
 agent7.load("./QP84DQNd1[1, 1, 1]CPD.h5")
 agent6 = DQNAgent(state_size, action_size)
@@ -1227,11 +1338,6 @@ agent1.load("./QP84DQNd1[0, 0, 1]CPD.h5")
 agent = DQNAgent(state_size, action_size)
 agent.load("./QP84DQNd1[0, 0, 0]CPD.h5")
 threebitsimulation(agent,agent1,agent2,agent3,agent4,agent5,agent6,agent7)
-
-
-
-
-
 
 agent=DQNAgent(state_size, action_size)
 agent=Dqn([0,0,0,0],agent)
