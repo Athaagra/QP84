@@ -239,7 +239,31 @@ LogicalStates4bit=pd.DataFrame(LogicalStates4bit, columns=columns4bit)
 LogicalStates2bit=LogicalStates2bit.rename(index={0:'00',1:'01',2:'10',3:'11'})
 LogicalStates3bit=LogicalStates3bit.rename(index={0:'000',1:'001',2:'010',3:'011',4:'100',5:'101',6:'110',7:'111'})
 LogicalStates4bit=LogicalStates4bit.rename(index={0:'0000',1:'0001',2:'0010',3:'0011',4:'0100',5:'0101',6:'0110',7:'0111',8:'1000',9:'1001',10:'1010',11:'1011',12:'1100',13:'1101',14:'1110',15:'1111'})
-#LogicalStates2bit=LogicalStates2bit.set_index(columns2bit)
+def mannwhitney(total_episodes,error):
+    from scipy.stats import mannwhitneyu
+    # seed the random number generator
+    resultss=[]
+    if sum(total_episodes)!=sum(error):
+        stat, pvalue = mannwhitneyu(total_episodes, error)
+        print('Statistics=%.3f, p=%.3f' % (stat, pvalue))
+        # interpret
+        if pvalue > 0.05:
+            print('We accept the null hypothesis')
+            resultss.append(['Qlearning p-value We accept the null hypothesis:',pvalue])
+        else:
+            print("The p-value is less than we reject the null hypothesis")
+            resultss.append(['Qlearning p-value the p-value is less than we reject the null hypothesis:',pvalue])
+    else:
+        print('identical')
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(13, 13))
+    plt.bar(pvalue)
+    plt.xlabel(f'Mannwhitney Test')
+    plt.ylabel('Probability')
+    plt.title(str(resultss))#.format(solved/EPISODES))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    return resultss
 def Qlearning(Qtable,inp,onebit=False,twobit=False,threebit=False,fourbit=False):
     import numpy as np
     episodes=1000
@@ -346,9 +370,12 @@ def Qlearning(Qtable,inp,onebit=False,twobit=False,threebit=False,fourbit=False)
     plt.xlabel(f'Number of episode')
     plt.ylabel('Cumulative Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment '+inpus+' Q learning Cumulative:{}'.format(sum(cum)))
+    plt.title('The simulation has been solved the environment '+inpus+' Q learning Cumulative:{}'.format(cum[-1]))
     plt.show()
-    return Qtable
+    error=env.error_counter
+    results=mannwhitney(total_episodes,error)
+    results.append(['Reward:'+solved/episodes,'Cumulative:'+cum[-1],'Steps:'+np.mean(steps_ep),'Fidelity:'+sum(total_fidelity)])
+    return Qtable,results
 
 
 
@@ -357,6 +384,7 @@ def OenvOagentsimulation(Qt,inp):
     total_re=[]
     steps_per_ep=[]
     solved=0
+    cum=[]
     total_fid=[]
     episodes = 100
     for ep in range(episodes):
@@ -408,11 +436,13 @@ def OenvOagentsimulation(Qt,inp):
                     total_re.append(1)                
                     steps_per_ep.append(steps)
                     solved+=1
+                    cum.append(solved)
                     break
                 else:
                     total_re.append(0)
                     steps_per_ep.append(steps)
                     solved+=0
+                    cum.append(solved)
                     break
     import matplotlib.pyplot as plt
     print('The simulation has been solved the '+str(len(inp))+' environment Q learning:{}'.format(solved/episodes))
@@ -424,7 +454,6 @@ def OenvOagentsimulation(Qt,inp):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total rewards environment '+str(len(inp))+' per episode :{}'.format(solved/episodes))
     plt.show()
-    
     plt.figure(figsize=(13, 13))
     plt.plot(total_fid)
     plt.xlabel(f'Number of episode')
@@ -432,8 +461,6 @@ def OenvOagentsimulation(Qt,inp):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total fidelity environment '+str(len(inp))+' per episode :{}'.format(sum(total_fid)))
     plt.show()
-    
-    
     plt.figure(figsize=(13, 13))
     plt.plot(steps_per_ep)
     plt.xlabel(f'Number of episode')
@@ -441,7 +468,10 @@ def OenvOagentsimulation(Qt,inp):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('The number of steps per episode environment '+str(len(inp))+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
     plt.show()
-
+    error=env.error_counter
+    results=mannwhitney(total_re,error)
+    results.append(['Reward:'+solved/episodes,'Cumulative:'+cum[-1],'Steps:'+np.mean(steps_per_ep),'Fidelity:'+sum(total_fid)])
+    return results
 
 
 
@@ -453,6 +483,7 @@ def onebitsimulation(Qt,Qt1):
     steps_per_ep=[]
     solved=0
     total_fid=[]
+    cum=[]
     episodes = 100
     for ep in range(episodes):
         inpu=np.random.randint(0,2,1)
@@ -488,11 +519,13 @@ def onebitsimulation(Qt,Qt1):
                     total_re.append(1)                
                     steps_per_ep.append(steps)
                     solved+=1
+                    cum.append(solved)
                     break
                 else:
                     total_re.append(0)
                     steps_per_ep.append(steps)
                     solved+=0
+                    cum.append(solved)
                     break
     import matplotlib.pyplot as plt
     print('The simulation has been solved the environment Q learning:{}'.format(solved/episodes))
@@ -504,7 +537,6 @@ def onebitsimulation(Qt,Qt1):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total rewards '+inpus+' per episode :{}'.format(solved/episodes))
     plt.show()
-    
     plt.figure(figsize=(13, 13))
     plt.plot(total_fid)
     plt.xlabel(f'Number of episode')
@@ -512,8 +544,6 @@ def onebitsimulation(Qt,Qt1):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total fidelity '+inpus+' per episode :{}'.format(sum(total_fid)))
     plt.show()
-    
-    
     plt.figure(figsize=(13, 13))
     plt.plot(steps_per_ep)
     plt.xlabel(f'Number of episode')
@@ -521,7 +551,12 @@ def onebitsimulation(Qt,Qt1):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('The number of steps '+inpus+' per episode that solved:{}'.format(np.round(np.mean(steps_per_ep))))
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    results=mannwhitney(total_re,error)
+    results1=mannwhitney(total_re,error1)
+    results.append([results1,'Reward:'+solved/episodes,'Cumulative:'+cum[-1],'Steps:'+np.mean(steps_per_ep),'Fidelity:'+sum(total_fid)])
+    return results
 
 def twobitsimulation(Qt,Qt1,Qt2,Qt3):
     env=Qprotocol(4)
@@ -532,6 +567,7 @@ def twobitsimulation(Qt,Qt1,Qt2,Qt3):
     steps_per_ep=[]
     solved=0
     total_fid=[]
+    cum=[]
     episodes = 100
     for ep in range(episodes):
         inpu=np.random.randint(0,2,2)
@@ -587,11 +623,13 @@ def twobitsimulation(Qt,Qt1,Qt2,Qt3):
                     total_re.append(1)                
                     steps_per_ep.append(steps)
                     solved+=1
+                    cum.append(solved)
                     break
                 else:
                     total_re.append(0)
                     steps_per_ep.append(steps)
                     solved+=0
+                    cum.append(solved)
                     break
     import matplotlib.pyplot as plt
     print('The simulation has been solved the environment Q learning:{}'.format(solved/episodes))
@@ -603,7 +641,6 @@ def twobitsimulation(Qt,Qt1,Qt2,Qt3):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total rewards per episode :{}'.format(solved/episodes))
     plt.show()
-    
     plt.figure(figsize=(13, 13))
     plt.plot(total_fid)
     plt.xlabel(f'Number of episode')
@@ -611,8 +648,6 @@ def twobitsimulation(Qt,Qt1,Qt2,Qt3):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total fidelity per episode :{}'.format(sum(total_fid)))
     plt.show()
-    
-    
     plt.figure(figsize=(13, 13))
     plt.plot(steps_per_ep)
     plt.xlabel(f'Number of episode')
@@ -620,7 +655,16 @@ def twobitsimulation(Qt,Qt1,Qt2,Qt3):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_per_ep))))
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    error2=env2.error_counter
+    error3=env3.error_counter
+    results=mannwhitney(total_re,error)
+    results1=mannwhitney(total_re,error1)
+    results2=mannwhitney(total_re,error2)
+    results3=mannwhitney(total_re,error3)
+    results.append([results1,results2,results3,'Reward:'+solved/episodes,'Cumulative:'+cum[-1],'Steps:'+np.mean(steps_per_ep),'Fidelity:'+sum(total_fid)])
+    return results
 
 def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
     env=Qprotocol(4)
@@ -632,6 +676,7 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
     env6=Qprotocol(4)
     env7=Qprotocol(4)
     total_re=[]
+    cum=[]
     steps_per_ep=[]
     solved=0
     total_fid=[]
@@ -727,11 +772,13 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
                     total_re.append(1)                
                     steps_per_ep.append(steps)
                     solved+=1
+                    cum.append(solved)
                     break
                 else:
                     total_re.append(0)
                     steps_per_ep.append(steps)
                     solved+=0
+                    cum.append(solved)
                     break
                 #if re==1:
     import matplotlib.pyplot as plt
@@ -744,7 +791,6 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total rewards per episode '+inpus+' :{}'.format(solved/episodes))
     plt.show()
-    
     plt.figure(figsize=(13, 13))
     plt.plot(total_fid)
     plt.xlabel(f'Number of episode')
@@ -752,8 +798,6 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total fidelity per episode '+inpus+':{}'.format(sum(total_fid)))
     plt.show()
-    
-    
     plt.figure(figsize=(13, 13))
     plt.plot(steps_per_ep)
     plt.xlabel(f'Number of episode')
@@ -761,7 +805,24 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('The number of steps per episode '+inpus+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    error2=env2.error_counter
+    error3=env3.error_counter
+    error4=env4.error_counter
+    error5=env5.error_counter
+    error6=env6.error_counter
+    error7=env7.error_counter
+    results=mannwhitney(total_re,error)
+    results1=mannwhitney(total_re,error1)
+    results2=mannwhitney(total_re,error2)
+    results3=mannwhitney(total_re,error3)
+    results4=mannwhitney(total_re,error4)
+    results5=mannwhitney(total_re,error5)
+    results6=mannwhitney(total_re,error6)
+    results7=mannwhitney(total_re,error7)
+    results.append([results1,results2,results3,results4,results5,results6,results7,'Reward:'+solved/episodes,'Cumulative:'+cum[-1],'Steps:'+np.mean(steps_per_ep),'Fidelity:'+sum(total_fid)])
+    return results
 
 
 def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13,Qt14,Qt15):
@@ -784,6 +845,7 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
     total_re=[]
     steps_per_ep=[]
     solved=0
+    cum=[]
     total_fid=[]
     episodes = 100
     for ep in range(episodes):
@@ -951,11 +1013,13 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
                     total_re.append(1)                
                     steps_per_ep.append(steps)
                     solved+=1
+                    cum.append(solved)
                     break
                 else:
                     total_re.append(0)
                     steps_per_ep.append(steps)
                     solved+=0
+                    cum.append(solved)
                     break
     import matplotlib.pyplot as plt
     print('The simulation has been solved the environment Q learning:{}'.format(solved/episodes))
@@ -967,7 +1031,6 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total rewards per episode :{}'.format(solved/episodes))
     plt.show()
-    
     plt.figure(figsize=(13, 13))
     plt.plot(total_fid)
     plt.xlabel(f'Number of episode')
@@ -975,8 +1038,6 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('Total fidelity per episode :{}'.format(sum(total_fid)))
     plt.show()
-    
-    
     plt.figure(figsize=(13, 13))
     plt.plot(steps_per_ep)
     plt.xlabel(f'Number of episode')
@@ -984,89 +1045,164 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_per_ep))))
     plt.show()
-
+    error=env.error_counter
+    error1=env1.error_counter
+    error2=env2.error_counter
+    error3=env3.error_counter
+    error4=env4.error_counter
+    error5=env5.error_counter
+    error6=env6.error_counter
+    error7=env7.error_counter
+    error8=env8.error_counter
+    error9=env9.error_counter
+    error10=env10.error_counter
+    error11=env11.error_counter
+    error12=env12.error_counter
+    error13=env13.error_counter
+    error14=env14.error_counter
+    error15=env15.error_counter
+    results=mannwhitney(total_re,error)
+    results1=mannwhitney(total_re,error1)
+    results2=mannwhitney(total_re,error2)
+    results3=mannwhitney(total_re,error3)
+    results4=mannwhitney(total_re,error4)
+    results5=mannwhitney(total_re,error5)
+    results6=mannwhitney(total_re,error6)
+    results7=mannwhitney(total_re,error7)
+    results8=mannwhitney(total_re,error8)
+    results9=mannwhitney(total_re,error9)
+    results10=mannwhitney(total_re,error10)
+    results11=mannwhitney(total_re,error11)
+    results12=mannwhitney(total_re,error12)
+    results13=mannwhitney(total_re,error13)
+    results14=mannwhitney(total_re,error14)
+    results15=mannwhitney(total_re,error15)
+    results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+solved/episodes,'Cumulative:'+cum[-1],'Steps:'+np.mean(steps_per_ep),'Fidelity:'+sum(total_fid)])
+    return results
 actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
 q=(4,len(actions_list))
 
 Q=np.zeros(q)
-Q=Qlearning(Q,np.random.randint(0,2,1),onebit=True)
-OenvOagentsimulation(Q,np.random.randint(0,2,1))
+Q,r=Qlearning(Q,np.random.randint(0,2,1),onebit=True)
+print(r,file='randomOneBitQlTraining.txt')
+r=OenvOagentsimulation(Q,np.random.randint(0,2,1))
+print(r,file='randomOneBitQlTesting.txt')
 Q=np.zeros(q)
-Q=Qlearning(Q,np.random.randint(0,2,2),twobit=True)
-OenvOagentsimulation(Q,np.random.randint(0,2,2))
+Q,r=Qlearning(Q,np.random.randint(0,2,2),twobit=True)
+print(r,file='randomTwoBitQlTraining.txt')
+r=OenvOagentsimulation(Q,np.random.randint(0,2,2))
+print(r,file='randomTwoBitQlTesting.txt')
 Q=np.zeros(q)
-Q=Qlearning(Q,np.random.randint(0,2,3),threebit=True)
-OenvOagentsimulation(Q,np.random.randint(0,2,3))
+Q,r=Qlearning(Q,np.random.randint(0,2,3),threebit=True)
+print(r,file='randomThreeBitQlTraining.txt')
+r=OenvOagentsimulation(Q,np.random.randint(0,2,3))
+print(r,file='randomThreeBitQlTesting.txt')
 Q=np.zeros(q)
-Q=Qlearning(Q,np.random.randint(0,2,4),fourbit=True)
-OenvOagentsimulation(Q,np.random.randint(0,2,4))
+Q,r=Qlearning(Q,np.random.randint(0,2,4),fourbit=True)
+print(r,file='randomFourBitQlTraining.txt')
+r=OenvOagentsimulation(Q,np.random.randint(0,2,4))
+print(r,file='randomFourBitQlTesting.txt')
 
 
-
 Q=np.zeros(q)
-Q=Qlearning(Q,[0],onebit=True)
+Q,r=Qlearning(Q,[0],onebit=True)
+print(r,file='randomOne[0]BitQlTraining.txt')
 Q1=np.zeros(q)
-Q1=Qlearning(Q1,[0],onebit=True)
-onebitsimulation(Q,Q1)
+Q1,r=Qlearning(Q1,[0],onebit=True)
+print(r,file='randomOne[1]BitQlTraining.txt')
+r=onebitsimulation(Q,Q1)
+print(r,file='randomOneMULTIBitQlTesting.txt')
+
 
 Q=np.zeros(q)
-Q=Qlearning(Q,[0,0],twobit=True)
+Q,r=Qlearning(Q,[0,0],twobit=True)
+print(r,file='randomTwo[0,0]BitQlTraining.txt')
 Q1=np.zeros(q)
-Q1=Qlearning(Q1,[0,1],twobit=True)
+Q1,r=Qlearning(Q1,[0,1],twobit=True)
+print(r,file='randomTwo[0,1]BitQlTraining.txt')
 Q2=np.zeros(q)
-Q2=Qlearning(Q2,[1,0],twobit=True)
+Q2,r=Qlearning(Q2,[1,0],twobit=True)
+print(r,file='randomTwo[1,0]BitQlTraining.txt')
 Q3=np.zeros(q)
-Q3=Qlearning(Q3,[1,1],twobit=True)
-twobitsimulation(Q,Q1,Q2,Q3)
+Q3,r=Qlearning(Q3,[1,1],twobit=True)
+print(r,file='randomTwo[1,1]BitQlTraining.txt')
+r=twobitsimulation(Q,Q1,Q2,Q3)
+print(r,file='randomTwoMULTIBitQlTesting.txt')
+
 
 Q=np.zeros(q)
-Q=Qlearning(Q,[0,0,0],threebit=True)
+Q,r=Qlearning(Q,[0,0,0],threebit=True)
+print(r,file='randomThree[0,0,0]BitQlTraining.txt')
 Q1=np.zeros(q)
-Q1=Qlearning(Q1,[0,0,1],threebit=True)
+Q1,r=Qlearning(Q1,[0,0,1],threebit=True)
+print(r,file='randomThree[0,0,1]BitQlTraining.txt')
 Q2=np.zeros(q)
-Q2=Qlearning(Q2,[0,1,0],threebit=True)
+Q2,r=Qlearning(Q2,[0,1,0],threebit=True)
+print(r,file='randomThree[0,1,0]BitQlTraining.txt')
 Q3=np.zeros(q)
-Q3=Qlearning(Q3,[0,1,1],threebit=True)
+Q3,r=Qlearning(Q3,[0,1,1],threebit=True)
+print(r,file='randomThree[0,1,1]BitQlTraining.txt')
 Q4=np.zeros(q)
-Q4=Qlearning(Q4,[1,0,0],threebit=True)
+Q4,r=Qlearning(Q4,[1,0,0],threebit=True)
+print(r,file='randomThree[1,0,0]BitQlTraining.txt')
 Q5=np.zeros(q)
-Q5=Qlearning(Q5,[1,0,1],threebit=True)
+Q5,r=Qlearning(Q5,[1,0,1],threebit=True)
+print(r,file='randomThree[1,0,1]BitQlTraining.txt')
 Q6=np.zeros(q)
-Q6=Qlearning(Q6,[1,1,0],threebit=True)
+Q6,r=Qlearning(Q6,[1,1,0],threebit=True)
+print(r,file='randomThree[1,1,0]BitQlTraining.txt')
 Q7=np.zeros(q)
-Q7=Qlearning(Q7,[1,1,1],threebit=True)
-threebitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7)
-
+Q7,r=Qlearning(Q7,[1,1,1],threebit=True)
+print(r,file='randomThree[1,1,1]BitQlTraining.txt')
+r=threebitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7)
+print(r,file='randomThreeMULTIBitQlTesting.txt')
 Q=np.zeros(q)
-Q=Qlearning(Q,[0,0,0,0],fourbit=True)
+Q,r=Qlearning(Q,[0,0,0,0],fourbit=True)
+print(r,file='randomFour[0,0,0,0]BitQlTraining.txt')
 Q1=np.zeros(q)
-Q1=Qlearning(Q1,[0,0,0,1],fourbit=True)
+Q1,r=Qlearning(Q1,[0,0,0,1],fourbit=True)
+print(r,file='randomFour[0,0,0,1]BitQlTraining.txt')
 Q2=np.zeros(q)
-Q2=Qlearning(Q2,[0,0,1,0],fourbit=True)
+Q2,r=Qlearning(Q2,[0,0,1,0],fourbit=True)
+print(r,file='randomFour[0,0,1,0]BitQlTraining.txt')
 Q3=np.zeros(q)
-Q3=Qlearning(Q3,[0,0,1,1],fourbit=True)
+Q3,r=Qlearning(Q3,[0,0,1,1],fourbit=True)
+print(r,file='randomFour[0,0,1,1]BitQlTraining.txt')
 Q4=np.zeros(q)
-Q4=Qlearning(Q4,[0,1,0,0],fourbit=True)
+Q4,r=Qlearning(Q4,[0,1,0,0],fourbit=True)
+print(r,file='randomFour[0,1,0,0]BitQlTraining.txt')
 Q5=np.zeros(q)
-Q5=Qlearning(Q5,[0,1,0,1],fourbit=True)
+Q5,r=Qlearning(Q5,[0,1,0,1],fourbit=True)
+print(r,file='randomFour[0,1,0,1]BitQlTraining.txt')
 Q6=np.zeros(q)
-Q6=Qlearning(Q6,[0,1,1,0],fourbit=True)
+Q6.r=Qlearning(Q6,[0,1,1,0],fourbit=True)
+print(r,file='randomFour[0,1,1,0]BitQlTraining.txt')
 Q7=np.zeros(q)
-Q7=Qlearning(Q7,[0,1,1,1],fourbit=True)
+Q7,r=Qlearning(Q7,[0,1,1,1],fourbit=True)
+print(r,file='randomFour[0,1,1,1]BitQlTraining.txt')
 Q8=np.zeros(q)
-Q8=Qlearning(Q8,[1,0,0,0],fourbit=True)
+Q8,r=Qlearning(Q8,[1,0,0,0],fourbit=True)
+print(r,file='randomFour[1,0,0,0]BitQlTraining.txt')
 Q9=np.zeros(q)
-Q9=Qlearning(Q9,[1,0,0,1],fourbit=True)
+Q9,r=Qlearning(Q9,[1,0,0,1],fourbit=True)
+print(r,file='randomFour[1,0,0,1]BitQlTraining.txt')
 Q10=np.zeros(q)
-Q10=Qlearning(Q10,[1,0,1,0],fourbit=True)
+Q10,r=Qlearning(Q10,[1,0,1,0],fourbit=True)
+print(r,file='randomFour[1,0,1,0]BitQlTraining.txt')
 Q11=np.zeros(q)
-Q11=Qlearning(Q11,[1,0,1,1],fourbit=True)
+Q11,r=Qlearning(Q11,[1,0,1,1],fourbit=True)
+print(r,file='randomFour[1,0,1,1]BitQlTraining.txt')
 Q12=np.zeros(q)
-Q12=Qlearning(Q12,[1,1,0,0],fourbit=True)
+Q12,r=Qlearning(Q12,[1,1,0,0],fourbit=True)
+print(r,file='randomFour[1,1,0,0]BitQlTraining.txt')
 Q13=np.zeros(q)
-Q13=Qlearning(Q13,[1,1,0,1],fourbit=True)
+Q13,r=Qlearning(Q13,[1,1,0,1],fourbit=True)
+print(r,file='randomFour[1,1,0,1]BitQlTraining.txt')
 Q14=np.zeros(q)
-Q14=Qlearning(Q14,[1,1,1,0],fourbit=True)
+Q14,r=Qlearning(Q14,[1,1,1,0],fourbit=True)
+print(r,file='randomFour[1,1,1,0]BitQlTraining.txt')
 Q15=np.zeros(q)
-Q15=Qlearning(Q15,[1,1,1,1],fourbit=True)
-fourbitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,Q11,Q12,Q13,Q14,Q15)
+Q15,r=Qlearning(Q15,[1,1,1,1],fourbit=True)
+print(r,file='randomFour[1,1,1,1]BitQlTraining.txt')
+r=fourbitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,Q11,Q12,Q13,Q14,Q15)
+print(r,file='randomFourMULTIBitqlTesting.txt')
