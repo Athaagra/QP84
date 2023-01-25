@@ -660,7 +660,7 @@ def pposimulation(inp,ac):
     plt.show()
     error=env.error_counter
     results=mannwhitney(rewards_during_training,error)
-    results.append(['Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append(['Reward:'+str(solved/episodes),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 
 def onebitsimulation(inp,ac,ac1):
@@ -756,7 +756,7 @@ def onebitsimulation(inp,ac,ac1):
     error1=env1.error_counter
     results=mannwhitney(total_episodes,error)
     results1=mannwhitney(total_episodes,error1)
-    results.append([results1,'Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append([results1,'Reward:'+str(solved/episodes),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 
 def twobitsimulation(inp,ac,ac1,ac2,ac3):
@@ -882,7 +882,7 @@ def twobitsimulation(inp,ac,ac1,ac2,ac3):
     results1=mannwhitney(total_episodes,error1)
     results2=mannwhitney(total_episodes,error2)
     results3=mannwhitney(total_episodes,error3)
-    results.append([results1,results2,results3,'Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append([results1,results2,results3,'Reward:'+str(solved/episodes),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 
 
@@ -1065,7 +1065,7 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
     results5=mannwhitney(total_episodes,error5)
     results6=mannwhitney(total_episodes,error6)
     results7=mannwhitney(total_episodes,error7)
-    results.append([results1,results2,results3,results4,results5,results6,results7,'Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append([results1,results2,results3,results4,results5,results6,results7,'Reward:'+str(solved/episodes),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,ac13,ac14,ac15):
     total_episodes=[]
@@ -1358,7 +1358,7 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
     results13=mannwhitney(total_episodes,error13)
     results14=mannwhitney(total_episodes,error14)
     results15=mannwhitney(total_episodes,error15)
-    results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+solved/episodes,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+str(solved/episodes),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 
 def load_weightsOne():
