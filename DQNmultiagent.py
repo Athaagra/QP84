@@ -338,8 +338,9 @@ def mannwhitney(total_episodes,error):
             resultss.append(['Qlearning p-value the p-value is less than we reject the null hypothesis:',pvalue])
     else:
         print('identical')
+        pvalue=0
     plt.figure(figsize=(13, 13))
-    plt.bar(pvalue)
+    plt.bar(1,pvalue)
     plt.xlabel(f'Mannwhitney Test')
     plt.ylabel('Probability')
     plt.title(str(resultss))#.format(solved/EPISODES))
@@ -463,7 +464,7 @@ def Dqn(inp,ag):
     plt.show()
     error=qpO.error_counter
     results=mannwhitney(total_episodes,error)
-    results.append(['Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append(['Reward:'+str(solved/EPISODES),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return ag,results
 
 def Dqnsimulation(inpu,ag):
@@ -479,11 +480,11 @@ def Dqnsimulation(inpu,ag):
     cumre=0
     cumulative_reward=[]
     total_fidelity=[]
+    reward_episode=[]
     for e in range(EPISODES):
             inp=inpu
             state_n=env.reset(4,inp)
             steps_ep=0
-            reward_episode=[]
             done=False
             state = np.array(state_n[0])
             state=np.reshape(state, [1, state_size])
@@ -537,6 +538,7 @@ def Dqnsimulation(inpu,ag):
                         cumulative_reward.append(cumre)
                         break
             total_episodes.append(reward_episode)
+    total_episodes=reward_episode
     plt.figure(figsize=(13, 13))
     print('The simulation has been solved the environment DQN:{}'.format(solved/EPISODES))
     print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
@@ -569,7 +571,7 @@ def Dqnsimulation(inpu,ag):
     plt.show()
     error=env.error_counter
     results=mannwhitney(total_episodes,error)
-    results.append(['Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append(['Reward:'+str(solved/EPISODES),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 def onebitsimulation(ag,ag1):
     batch_size=24
@@ -640,6 +642,7 @@ def onebitsimulation(ag,ag1):
                         cumulative_reward.append(cumre)
                         break
             total_episodes.append(reward_episode)
+    total_episodes=reward_episode
     plt.figure(figsize=(13, 13))
     print('The simulation has been solved the environment DQN:{}'.format(solved/EPISODES))
     print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
@@ -674,7 +677,7 @@ def onebitsimulation(ag,ag1):
     error1=env1.error_counter
     results=mannwhitney(total_episodes,error)
     results1=mannwhitney(total_episodes,error1)
-    results.append([results1,'Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append([results1,'Reward:'+str(solved/EPISODES),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 
 def twobitsimulation(ag,ag1,ag2,ag3):
@@ -690,6 +693,7 @@ def twobitsimulation(ag,ag1,ag2,ag3):
     env2=Qprotocol(4)
     env3=Qprotocol(4)
     cumre=0
+    reward_episode=[]
     cumulative_reward=[]
     total_fidelity=[]
     for e in range(EPISODES):
@@ -699,7 +703,6 @@ def twobitsimulation(ag,ag1,ag2,ag3):
             state_n2=env2.reset(4,inp)
             state_n3=env3.reset(4,inp)
             steps_ep=0
-            reward_episode=[]
             done=False
             done1=False
             done2=False
@@ -751,12 +754,17 @@ def twobitsimulation(ag,ag1,ag2,ag3):
                 if done3:
                     bk=bob_key3
                 if done or done1 or done2 or done3:
-                    inpus=''.join(str(x) for x in inp)
-                    bob_keys=''.join(str(x) for x in bk[:len(inp)])
-                    tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bob_keys,:])
-                    Fidelity=abs(sum(tp))**2
-                    total_fidelity.append(Fidelity)
-                    steps_epi.append(steps_ep)
+                    if len(bk)==len(inp):
+                        print('This is the input {} and bob key {}'.format(inp,bk))
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bk[:len(inp)])
+                        tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                        steps_epi.append(steps_ep)
+                    else:
+                        total_fidelity.append(0)
+                        steps_epi.append(steps_ep)
                     if reward==1 or reward1==1 or reward2==1 or reward3==1:
                         solved+=1
                         cumre+=1
@@ -770,7 +778,7 @@ def twobitsimulation(ag,ag1,ag2,ag3):
                         cumulative_reward.append(cumre)
                         break
             total_episodes.append(reward_episode)
-    
+    total_episodes=reward_episode
     plt.figure(figsize=(13, 13))
     print('The simulation has been solved the environment DQN:{}'.format(solved/EPISODES))
     print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
@@ -809,7 +817,7 @@ def twobitsimulation(ag,ag1,ag2,ag3):
     results1=mannwhitney(total_episodes,error1)
     results2=mannwhitney(total_episodes,error2)
     results3=mannwhitney(total_episodes,error3)
-    results.append([results1,results2,results3,'Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append([results1,results2,results3,'Reward:'+str(solved/EPISODES),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 def threebitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7):
     batch_size=24
@@ -830,6 +838,7 @@ def threebitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7):
     cumre=0
     cumulative_reward=[]
     total_fidelity=[]
+    reward_episode=[]
     for e in range(EPISODES):
             inp=np.random.randint(0,2,3)
             state_n=env.reset(4,inp)
@@ -841,7 +850,6 @@ def threebitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7):
             state_n6=env6.reset(4,inp)
             state_n7=env7.reset(4,inp)
             steps_ep=0
-            reward_episode=[]
             done=False
             done1=False
             done2=False
@@ -965,6 +973,7 @@ def threebitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7):
                         cumulative_reward.append(cumre)
                         break
             total_episodes.append(reward_episode)
+    total_episodes=reward_episode
     plt.figure(figsize=(13, 13))
     print('The simulation has been solved the environment DQN:{}'.format(solved/EPISODES))
     print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
@@ -1011,7 +1020,7 @@ def threebitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7):
     results5=mannwhitney(total_episodes,error5)
     results6=mannwhitney(total_episodes,error6)
     results7=mannwhitney(total_episodes,error7)
-    results.append([results1,results2,results3,results4,results5,results6,results7,'Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append([results1,results2,results3,results4,results5,results6,results7,'Reward:'+str(solved/EPISODES),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 
 def fourbitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7,ag8,ag9,ag10,ag11,ag12,ag13,ag14,ag15):
@@ -1041,6 +1050,7 @@ def fourbitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7,ag8,ag9,ag10,ag11,ag12,ag13
     r=0
     cumulative_reward=[]
     total_fidelity=[]
+    reward_episode=[]
     for e in range(EPISODES):
             inpu=np.random.randint(0,2,4)
             state1=env.reset(4,inpu)
@@ -1060,7 +1070,6 @@ def fourbitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7,ag8,ag9,ag10,ag11,ag12,ag13
             state15=env14.reset(4,inpu)
             state16=env15.reset(4,inpu)
             steps_ep=0
-            reward_episode=[]
             done1=False
             done2=False
             done3=False
@@ -1279,6 +1288,7 @@ def fourbitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7,ag8,ag9,ag10,ag11,ag12,ag13
                         cumulative_reward.append(r)
                         break 
             total_episodes.append(reward_episode)
+    total_episode=reward_episode
     plt.figure(figsize=(13, 13))
     print('The simulation has been solved the environment DQN:{}'.format(solved/EPISODES))
     print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
@@ -1341,7 +1351,7 @@ def fourbitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7,ag8,ag9,ag10,ag11,ag12,ag13
     results13=mannwhitney(total_episodes,error13)
     results14=mannwhitney(total_episodes,error14)
     results15=mannwhitney(total_episodes,error15)
-    results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+solved/EPISODES,'Cumulative:'+cumulative_reward[-1],'Steps:'+np.mean(steps_epi),'Fidelity:'+sum(total_fidelity)])
+    results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+str(solved/EPISODES),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 state_size=4
 actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
@@ -1362,7 +1372,7 @@ agent,r=Dqn(np.random.randint(0,2,3),agent)
 print(r,file=open('randomThreeBitDqnTraining.txt','w'))
 r=Dqnsimulation(np.random.randint(0,2,3),agent)
 print(r,file=open('randomThreeBitDqnTesting.txt','w'))
-agent,r = DQNAgent(state_size, action_size)
+agent = DQNAgent(state_size, action_size)
 agent,r=Dqn(np.random.randint(0,2,4),agent)
 print(r,file=open('randomFourBitDqnTraining.txt','w'))
 r=Dqnsimulation(np.random.randint(0,2,4),agent)
@@ -1370,10 +1380,10 @@ print(r,file=open('randomFourBitDqnTesting.txt','w'))
 
 ##Training
 agent = DQNAgent(state_size, action_size)
-agent,r=Dqn([0],agent,onebit=True)
+agent,r=Dqn([0],agent)
 print(r,file=open('randomOne[0]BitDqnTraining.txt','w'))
 agentO = DQNAgent(state_size, action_size)
-agentO,r=Dqn([1],agentO,onebit=True)
+agentO,r=Dqn([1],agentO)
 print(r,file=open('randomOne[1]BitDqnTraining.txt','w'))
 r=onebitsimulation(agent,agentO)
 print(r,file=open('randomOneBitMULTIDqnTesting.txt','w'))
@@ -1388,16 +1398,16 @@ print(r,file='randomOneBitMULTIDqnTesting.txt')
 
 
 agent = DQNAgent(state_size, action_size)
-agent,r=Dqn([0,0],agent,twobit=True)
+agent,r=Dqn([0,0],agent)
 print(r,file=open('randomTwo[0,0]BitDqnTraining.txt','w'))
 agentO = DQNAgent(state_size, action_size)
-agentO,r=Dqn([0,1],agentO,twobit=True)
+agentO,r=Dqn([0,1],agentO)
 print(r,file=open('randomTwo[0,1]BitDqnTraining.txt','w'))
 agentT = DQNAgent(state_size, action_size)
-agentT,r=Dqn([1,0],agentT,twobit=True)
+agentT,r=Dqn([1,0],agentT)
 print(r,file=open('randomTwo[1,0]BitDqnTraining.txt','w'))
 agentTh = DQNAgent(state_size, action_size)
-agentTh,r=Dqn([1,1],agentTh,twobit=True)
+agentTh,r=Dqn([1,1],agentTh)
 print(r,file=open('randomTwo[1,1]BitDqnTraining.txt','w'))
 r=twobitsimulation(agent,agentO,agentT,agentTh)
 print(r,file=open('randomTwoMULTIBitDqnTraining.txt','w'))
