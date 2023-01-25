@@ -257,7 +257,7 @@ def mannwhitney(total_episodes,error):
         print('identical')
     import matplotlib.pyplot as plt
     plt.figure(figsize=(13, 13))
-    plt.bar(pvalue,1)
+    plt.bar(1,pvalue)
     plt.xlabel(f'Mannwhitney Test')
     plt.ylabel('Probability')
     plt.title(str(resultss))#.format(solved/EPISODES))
@@ -402,36 +402,38 @@ def OenvOagentsimulation(Qt,inp):
             if done==True:
                 bke=bob_key
             if done==True:
-                if len(inp)==1:
+                if len(inp)==1 and len(bke)==len(inpu):
                     tp=LogicalStates[:,inpu].T*LogicalStates[bke,:]
                     tp=tp[0]
                     inpus=str(inpu)
                     Fidelity=abs(sum(tp))**2
                     total_fid.append(Fidelity)
-                if len(inp)==2:
+                else:
+                    total_fid.append(0)
+                if len(inp)==2 and len(bke)==len(inpu):
                     inpus=''.join(str(x) for x in inpu)
                     bk=''.join(str(x) for x in bke[:len(inpu)])
                     tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bk,:])
                     Fidelity=abs(sum(tp))**2
                     total_fid.append(Fidelity)
-                if len(inp)==3:
+                else:
+                    total_fid.append(0)
+                if len(inp)==3 and len(bke)==len(inpu):
                     inpus=''.join(str(x) for x in inpu)
                     bk=''.join(str(x) for x in bke[:len(inpu)])
-                    if len(bke)==len(inpus):
-                        tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bk,:])
-                        Fidelity=abs(sum(tp))**2
-                        total_fid.append(Fidelity)
-                    else:
-                        total_fid.append(0)
-                if len(inp)==4:
+                    tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bk,:])
+                    Fidelity=abs(sum(tp))**2
+                    total_fid.append(Fidelity)
+                else:
+                    total_fid.append(0)
+                if len(inp)==4 and len(bke)==len(inpu):
                     inpus=''.join(str(x) for x in inpu)
                     bk=''.join(str(x) for x in bke[:len(inpu)])
-                    if len(bke)==len(inpus):
-                        tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bk,:])
-                        Fidelity=abs(sum(tp))**2
-                        total_fid.append(Fidelity)
-                    else:
-                        total_fid.append(0)
+                    tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bk,:])
+                    Fidelity=abs(sum(tp))**2
+                    total_fid.append(Fidelity)
+                else:
+                    total_fid.append(0)
                 if reward==1:
                     total_re.append(1)                
                     steps_per_ep.append(steps)
@@ -1077,8 +1079,10 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
     results13=mannwhitney(total_re,error13)
     results14=mannwhitney(total_re,error14)
     results15=mannwhitney(total_re,error15)
-    results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+solved/episodes,'Cumulative:'+cum[-1],'Steps:'+np.mean(steps_per_ep),'Fidelity:'+sum(total_fid)])
+    results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+str(solved/episodes),'Cumulative:'+str(cum[-1]),'Steps:'+str(np.mean(steps_per_ep)),'Fidelity:'+str(sum(total_fid))])
     return results
+
+
 actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
 q=(4,len(actions_list))
 
