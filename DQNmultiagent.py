@@ -1288,7 +1288,7 @@ def fourbitsimulation(ag,ag1,ag2,ag3,ag4,ag5,ag6,ag7,ag8,ag9,ag10,ag11,ag12,ag13
                         cumulative_reward.append(r)
                         break 
             total_episodes.append(reward_episode)
-    total_episode=reward_episode
+    total_episodes=reward_episode
     plt.figure(figsize=(13, 13))
     print('The simulation has been solved the environment DQN:{}'.format(solved/EPISODES))
     print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_epi))))
