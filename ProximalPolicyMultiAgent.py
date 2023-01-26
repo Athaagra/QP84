@@ -1320,7 +1320,7 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation cumulative:{}'.format(np.max(cumulative_reward)))
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation cumulative:{}'.format(sum(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
