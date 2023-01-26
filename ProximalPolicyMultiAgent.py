@@ -348,13 +348,13 @@ def train_policy(
             tf.minimum(ratio * advantage_buffer, min_advantage)
         )
         print('This is the policy grads {} ratio * advantage buffer , minimum advantage'.format(policy_loss))
-    policy_grads = tape.gradient(policy_loss, actor.trainable_variables)
+    policy_grads = tape.gradient(policy_loss, md.trainable_variables)
     print('Policy grads {}'.format(policy_grads))
-    policy_optimizer.apply_gradients(zip(policy_grads, actor.trainable_variables))
+    policy_optimizer.apply_gradients(zip(policy_grads, md.trainable_variables))
     print('policy optimizer {}'.format(policy_optimizer))
     kl = tf.reduce_mean(
         logprobability_buffer
-        - logprobabilities(actor(observation_buffer), action_buffer)
+        - logprobabilities(md(observation_buffer), action_buffer)
     )
     print('This is the kl {} logprobability_buffer - logprobabilities(actor(observation_buffer), action_buffer)'.format(kl))
     kl = tf.reduce_sum(kl)
@@ -363,15 +363,15 @@ def train_policy(
 
 # Train the value function by regression on mean-squared error
 @tf.function
-def train_value_function(observation_buffer, return_buffer):
+def train_value_function(observation_buffer, return_buffer,cc):
     print('This is the observation_buffer {} and the return buffer {}'.format(observation_buffer, return_buffer))
     with tf.GradientTape() as tape:  # Record operations for automatic differentiation.
         print('This is the tape {}'.format(tape))
-        value_loss = tf.reduce_mean((return_buffer - critic(observation_buffer)) ** 2)
+        value_loss = tf.reduce_mean((return_buffer - cc(observation_buffer)) ** 2)
         print('This is the value loss {} return - critic(observation_buffer)) ** 2'.format(value_loss))
-    value_grads = tape.gradient(value_loss, critic.trainable_variables)
+    value_grads = tape.gradient(value_loss, cc.trainable_variables)
     print('This is the value_grads {} value_loss, critic.trainbable_variables'.format(value_grads))
-    value_optimizer.apply_gradients(zip(value_grads, critic.trainable_variables))
+    value_optimizer.apply_gradients(zip(value_grads, cc.trainable_variables))
 
 
 # Hyperparameters of the PPO algorithm
@@ -437,7 +437,7 @@ def mannwhitney(total_episodes,error):
         print('identical')
     import matplotlib.pyplot as plt
     plt.figure(figsize=(13, 13))
-    plt.bar(pvalue)
+    plt.bar(1,pvalue)
     plt.xlabel(f'Mannwhitney Test')
     plt.ylabel('Probability')
     plt.title(str(resultss))#.format(solved/EPISODES))
@@ -520,16 +520,16 @@ def proximalpo(inp,ac,cr):
     #    print('This is the kl {}'.format(kl))
         # Update the value function
         for _ in range(train_value_iterations):
-            train_value_function(observation_buffer, return_buffer)
+            train_value_function(observation_buffer, return_buffer,cr)
         rewards_during_training.append(sum_return / num_episodes)
         # Print mean return and length for each epoch
         print(
             f" Epoch: {epoch + 1}. Mean Return: {sum_return / num_episodes}. Mean Length: {sum_length / num_episodes}"
         )
-    def save_weights(inpt,maxm):
+    def save_weights(ac,cr,inpt,maxm):
         path= '/home/Optimus/Desktop/QuantumComputingThesis/'
-        actor.save(path+ '_actor'+str(maxm)+'One'+str(inpt)+'.h5')
-        critic.save(path+ '_critic'+str(maxm)+'One'+str(inpt)+'.h5')
+        ac.save(path+ '_actor'+str(maxm)+'One'+str(inpt)+'.h5')
+        cr.save(path+ '_critic'+str(maxm)+'One'+str(inpt)+'.h5')
     count=0
     for i in rewards_during_training:
         if i==1.0:
@@ -549,10 +549,10 @@ def proximalpo(inp,ac,cr):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('The simulation has been solved the environment Proximal Policy Evaluation')
     plt.show()
-    save_weights(inpu,4)
+    save_weights(ac,cr,inpu,4)
     error=env.error_counter
     results=mannwhitney(rewards_during_training,error)
-    results.append(['Reward:'+count,'Cumulative:'+cum[-1],'Steps:'+np.mean(steps_ep)])
+    results.append(['Reward:'+str(count),'Cumulative:'+str(cum[-1]),'Steps:'+str(np.mean(steps_ep))])
     return actor,critic,results
 
 def pposimulation(inp,ac):
@@ -620,6 +620,8 @@ def pposimulation(inp,ac):
                 if reward==1:
                     count+=1
                     r=1
+                    cum_rev+=r
+                    cumulative_reward.append(cum_rev)
                     solved+=1
                     total_episodes.append(r)
                     break
@@ -716,10 +718,13 @@ def onebitsimulation(inp,ac,ac1):
                 if reward1>0 or reward2>0 :
                     count+=1
                     r=1
+                    cum_rev+=r
+                    cumulative_reward.append(cum_rev)
                     solved+=1
                     total_episodes.append(r)
                 else:
                     r=-1
+                    solved+=0
                     cum_rev+=r
                     cumulative_reward.append(cum_rev)
                     total_episodes.append(r)
@@ -838,6 +843,8 @@ def twobitsimulation(inp,ac,ac1,ac2,ac3):
                     count+=1
                     r=1
                     solved+=1
+                    cum_rev+=r
+                    cumulative_reward.append(cum_rev)
                     total_episodes.append(r)
                     break
                 else:
@@ -1013,6 +1020,7 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
                     count+=1
                     r=1
                     solved+=1
+                    cumulative_reward.append(cum_rev)
                     total_episodes.append(r)
                     break
                 else:
@@ -1151,12 +1159,12 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
             print('This is the episode {}'.format(i_episode))
             observation1 = observation1.reshape(1, -1)
             observation2 = observation2.reshape(1, -1)
+            observation7 = observation7.reshape(1, -1)
+            observation8 = observation8.reshape(1, -1)
             observation3 = observation3.reshape(1, -1)
             observation4 = observation4.reshape(1, -1)
             observation5 = observation5.reshape(1, -1)
             observation6 = observation6.reshape(1, -1)
-            observation7 = observation7.reshape(1, -1)
-            observation8 = observation8.reshape(1, -1)
             observation9 = observation9.reshape(1, -1)
             observation10 = observation10.reshape(1, -1)
             observation11 = observation11.reshape(1, -1)
@@ -1289,6 +1297,8 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
                 if reward1==1 or reward2==1 or reward3==1 or reward4==1 or reward5==1 or reward6==1 or reward7==1 or reward8==1 or reward9==1 or reward10==1 or reward11==1 or reward12==1 or reward13==1 or reward14==1 or reward15==1 or reward16==1:
                     count+=1
                     r=1
+                    cum_rev+=r
+                    cumulative_reward.append(cum_rev)
                     solved+=1
                     total_episodes.append(r)
                     break
@@ -1296,6 +1306,7 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
                     r=-1
                     cum_rev+=r
                     cumulative_reward.append(cum_rev)
+                    solved+=0
                     total_episodes.append(r)
                     break
     plt.figure(figsize=(13, 13))
@@ -1629,37 +1640,37 @@ actor14 = keras.Model(inputs=observation_input, outputs=logits)
 critic14 = keras.Model(inputs=observation_input, outputs=value)
 actor15 = keras.Model(inputs=observation_input, outputs=logits)
 critic15 = keras.Model(inputs=observation_input, outputs=value)
-actor,critic=proximalpo([0,0,0,0],actor,critic)
+actor,critic,r=proximalpo([0,0,0,0],actor,critic)
 print(r,file=open('randomFourBit[0,0,0,0]PPOTraining.txt','w'))
-actor1,critic1=proximalpo([0,0,0,1],actor1,critic1)
+actor1,critic1,r=proximalpo([0,0,0,1],actor1,critic1)
 print(r,file=open('randomFourBit[0,0,0,1]PPOTraining.txt','w'))
-actor2,critic2=proximalpo([0,0,1,0],actor2,critic2)
+actor2,critic2,r=proximalpo([0,0,1,0],actor2,critic2)
 print(r,file=open('randomFourBit[0,0,1,0]PPOTraining.txt','w'))
-actor3,critic3=proximalpo([0,0,1,1],actor3,critic3)
+actor3,critic3,r=proximalpo([0,0,1,1],actor3,critic3)
 print(r,file=open('randomFourBit[0,0,1,1]PPOTraining.txt','w'))
-actor4,critic4=proximalpo([0,1,0,0],actor4,critic4)
+actor4,critic4,r=proximalpo([0,1,0,0],actor4,critic4)
 print(r,file=open('randomFourBit[0,1,0,0]PPOTraining.txt','w'))
-actor5,critic5=proximalpo([0,1,0,1],actor5,critic5)
+actor5,critic5,r=proximalpo([0,1,0,1],actor5,critic5)
 print(r,file=open('randomFourBit[0,1,0,1]PPOTraining.txt','w'))
-actor6,critic6=proximalpo([0,1,1,0],actor6,critic6)
+actor6,critic6,r=proximalpo([0,1,1,0],actor6,critic6)
 print(r,file=open('randomFourBit[0,1,1,0]PPOTraining.txt','w'))
-actor7,critic7=proximalpo([0,1,1,1],actor7,critic7)
+actor7,critic7,r=proximalpo([0,1,1,1],actor7,critic7)
 print(r,file=open('randomFourBit[0,1,1,1]PPOTraining.txt','w'))
-actor8,critic8=proximalpo([1,0,0,0],actor8,critic8)
+actor8,critic8,r=proximalpo([1,0,0,0],actor8,critic8)
 print(r,file=open('randomFourBit[1,0,0,0]PPOTraining.txt','w'))
-actor9,critic9=proximalpo([1,0,0,1],actor9,critic9)
+actor9,critic9,r=proximalpo([1,0,0,1],actor9,critic9)
 print(r,file=open('randomFourBit[1,0,0,1]PPOTraining.txt','w'))
-actor10,critic10=proximalpo([1,0,1,0],actor10,critic10)
+actor10,critic10,r=proximalpo([1,0,1,0],actor10,critic10)
 print(r,file=open('randomFourBit[1,0,1,0]PPOTraining.txt','w'))
-actor11,critic11=proximalpo([1,0,1,1],actor11,critic11)
+actor11,critic11,r=proximalpo([1,0,1,1],actor11,critic11)
 print(r,file=open('randomFourBit[1,0,1,1]PPOTraining.txt','w'))
-actor12,critic12=proximalpo([1,1,0,0],actor12,critic12)
+actor12,critic12,r=proximalpo([1,1,0,0],actor12,critic12)
 print(r,file=open('randomFourBit[1,1,0,0]PPOTraining.txt','w'))
-actor13,critic13=proximalpo([1,1,0,1],actor13,critic13)
+actor13,critic13,r=proximalpo([1,1,0,1],actor13,critic13)
 print(r,file=open('randomFourBit[1,1,0,1]PPOTraining.txt','w'))
-actor14,critic14=proximalpo([1,1,1,0],actor14,critic14)
+actor14,critic14,r=proximalpo([1,1,1,0],actor14,critic14)
 print(r,file=open('randomFourBit[1,1,1,0]PPOTraining.txt','w'))
-actor15,critic15=proximalpo([1,1,1,1],actor15,critic15)
+actor15,critic15,r=proximalpo([1,1,1,1],actor15,critic15)
 print(r,file=open('randomFourBit[1,1,1,1]PPOTraining.txt','w'))
 #load_weightsOne()
 #load_weightsTwo()
