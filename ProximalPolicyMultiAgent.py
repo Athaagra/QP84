@@ -570,6 +570,13 @@ def proximalpo(inp,ac,cr):
     plt.title('The simulation has been solved the environment Proximal Policy:{}'.format(sum(total_episodes)))#.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
+    plt.plot(total_fidelity)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Fidelity')
+    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
+    plt.figure(figsize=(13, 13))
     plt.plot(q_value_critic)
     plt.plot(action_actor)
     plt.xlabel(f'loss of episode')
@@ -746,19 +753,21 @@ def onebitsimulation(inp,ac,ac1):
                     tp=tp[0]
                     Fidelity=abs(sum(tp))**2
                     total_fidelity.append(Fidelity)
-                if reward1>0 or reward2>0 :
-                    r=1
-                    cum_rev+=r
-                    cumulative_reward.append(cum_rev)
-                    solved+=1
-                    total_episodes.append(r)
                 else:
-                    r=-1
-                    solved+=0
-                    cum_rev+=r
-                    cumulative_reward.append(cum_rev)
-                    total_episodes.append(r)
-                    break
+                    total_fidelity.append(0)
+            if reward1>0 or reward2>0 :
+                r=1
+                cum_rev+=r
+                cumulative_reward.append(cum_rev)
+                solved+=1
+                total_episodes.append(r)
+            else:
+                r=-1
+                solved+=0
+                cum_rev+=r
+                cumulative_reward.append(cum_rev)
+                total_episodes.append(r)
+                break
     plt.figure(figsize=(13, 13))
     plt.plot(total_episodes)
     plt.xlabel(f'Number of episodes')
@@ -1046,6 +1055,8 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
                     tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bob_keys,:])
                     Fidelity=abs(sum(tp))**2
                     total_fidelity.append(Fidelity)
+                else:
+                    total_fidelity.append(0)
                 if reward1==1 or reward2==1 or reward3==1 or reward4==1 or reward5==1 or reward6==1 or reward7==1 or reward8==1:
                     count+=1
                     r=1
@@ -1324,6 +1335,8 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
                     tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bob_keys,:])
                     Fidelity=abs(sum(tp))**2
                     total_fidelity.append(Fidelity)
+                else:
+                    total_fidelity.append(0)
                 if reward1==1 or reward2==1 or reward3==1 or reward4==1 or reward5==1 or reward6==1 or reward7==1 or reward8==1 or reward9==1 or reward10==1 or reward11==1 or reward12==1 or reward13==1 or reward14==1 or reward15==1 or reward16==1:
                     count+=1
                     r=1
