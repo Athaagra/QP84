@@ -452,7 +452,9 @@ def proximalpo(inp,ac,cr):
     action_actor=[]
     env=Qprotocol(4)
     cum=[]
+    total_episodes=[]
     cumre=0
+    total_fidelity=[]
     for epoch in range(epochs):
         # Initialize the sum of the returns, lengths and number of episodes for each epoch
         sum_return = 0
@@ -501,6 +503,36 @@ def proximalpo(inp,ac,cr):
                 observation=np.array(state[0]) 
                 episode_return=0
                 episode_length = 0
+                if reward==1:
+                    total_episodes.append(1)
+                else:
+                    total_episodes.append(0)
+                if len(inp)==len(bob_key):
+                    if len(inp)==1 and len(bob_key)==len(inp):
+                        tp=LogicalStates[:,inp].T*LogicalStates[bob_key,:]
+                        tp=tp[0]
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    if len(inp)==2 and len(bob_key)==len(inp):
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
+                        tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    if len(inp)==3 and len(bob_key)==len(inp):
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
+                        tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    if len(inp)==4 and len(bob_key)==len(inp):
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
+                        tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                else:
+                    total_fidelity.append(0)
         # Get values from the buffer
         (
             observation_buffer,
@@ -530,16 +562,12 @@ def proximalpo(inp,ac,cr):
         path= '/home/Optimus/Desktop/QuantumComputingThesis/'
         ac.save(path+ '_actor'+str(maxm)+'One'+str(inpt)+'.h5')
         cr.save(path+ '_critic'+str(maxm)+'One'+str(inpt)+'.h5')
-    count=0
-    for i in rewards_during_training:
-        if i==1.0:
-            count+=1
     plt.figure(figsize=(13, 13))
-    plt.plot(rewards_during_training)
+    plt.plot(total_episodes)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Average Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy:{}'.format(count))#.format(solved/episodes))
+    plt.title('The simulation has been solved the environment Proximal Policy:{}'.format(sum(total_episodes)))#.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(q_value_critic)
@@ -547,7 +575,14 @@ def proximalpo(inp,ac,cr):
     plt.xlabel(f'loss of episode')
     plt.ylabel('Q-value')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation')
+    plt.title('The simulation and the Q-value of Proximal Policy Evaluation')
+    plt.show()
+    plt.figure(figsize=(13, 13))
+    plt.plot(steps_ep)
+    plt.xlabel(f'Number of steps of each episode')
+    plt.ylabel('Steps')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.title('The simulation and the number of steps of Proximal Policy Evaluation {}'.format(np.mean(steps_ep)))
     plt.show()
     save_weights(ac,cr,inpu,4)
     error=env.error_counter
@@ -585,40 +620,36 @@ def pposimulation(inp,ac):
             stat,reward,done,action_h,bob_keya=env.step(actiona)
             observation=stat[0]
             steps_ep+=1
-            if done:
-                bob_key=bob_keya
             if done==True:
-                if len(inp)==1 and len(bob_key)==len(inp):
-                    tp=LogicalStates[:,inp].T*LogicalStates[bob_key,:]
-                    tp=tp[0]
-                    Fidelity=abs(sum(tp))**2
-                    steps_epi.append(steps_ep)
-                    total_fidelity.append(Fidelity)
-                if len(inp)==2 and len(bob_key)==len(inp):
-                    inpus=''.join(str(x) for x in inp)
-                    bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
-                    tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bob_keys,:])
-                    Fidelity=abs(sum(tp))**2
-                    steps_epi.append(steps_ep)
-                    total_fidelity.append(Fidelity)
-                if len(inp)==3 and len(bob_key)==len(inp):
-                    inpus=''.join(str(x) for x in inp)
-                    bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
-                    tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bob_keys,:])
-                    Fidelity=abs(sum(tp))**2
-                    steps_epi.append(steps_ep)
-                    total_fidelity.append(Fidelity)
-                if len(inp)==4 and len(bob_key)==len(inp):
-                    inpus=''.join(str(x) for x in inp)
-                    bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
-                    tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bob_keys,:])
-                    Fidelity=abs(sum(tp))**2
-                    steps_epi.append(steps_ep)
-                    total_fidelity.append(Fidelity)
+                bob_key=bob_keya
+                steps_epi.append(steps_ep)
+                if len(inp)==len(bob_key):
+                    if len(inp)==1 and len(bob_key)==len(inp):
+                        tp=LogicalStates[:,inp].T*LogicalStates[bob_key,:]
+                        tp=tp[0]
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    if len(inp)==2 and len(bob_key)==len(inp):
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
+                        tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    if len(inp)==3 and len(bob_key)==len(inp):
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
+                        tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
+                    if len(inp)==4 and len(bob_key)==len(inp):
+                        inpus=''.join(str(x) for x in inp)
+                        bob_keys=''.join(str(x) for x in bob_key[:len(inp)])
+                        tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bob_keys,:])
+                        Fidelity=abs(sum(tp))**2
+                        total_fidelity.append(Fidelity)
                 else:
                     total_fidelity.append(0)
                 if reward==1:
-                    count+=1
                     r=1
                     cum_rev+=r
                     cumulative_reward.append(cum_rev)
@@ -656,7 +687,7 @@ def pposimulation(inp,ac):
     plt.figure(figsize=(13, 13))
     plt.plot(steps_epi)
     plt.xlabel(f'Number of episodes')
-    plt.ylabel('Rewards')
+    plt.ylabel('Steps')
     plt.title('The number of steps:{}'.format(np.average(steps_epi)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
@@ -716,7 +747,6 @@ def onebitsimulation(inp,ac,ac1):
                     Fidelity=abs(sum(tp))**2
                     total_fidelity.append(Fidelity)
                 if reward1>0 or reward2>0 :
-                    count+=1
                     r=1
                     cum_rev+=r
                     cumulative_reward.append(cum_rev)
