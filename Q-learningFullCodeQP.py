@@ -61,11 +61,23 @@ class Qprotocol:
              if data1[i]=="-" and recieverFilter[i]=="Z":
                  data2.append(np.random.randint(0,2,1)[0])
          return np.array(data2)
-     def __init__(self,maxm):
+     def __init__(self,maxm,inp,encode=encoded,decode=decoded,Qb=False,MultiAgent=False):
          self.max_moves = maxm
-         self.data0=np.random.randint(0,2,1)
-         self.data1 = np.random.randint(0,2,1)
-         self.data2 = np.random.randint(0,2,1)
+         if MultiAgent==True:
+             self.data1=inp
+             self.data0=np.random.randint(0,2,len(inp))
+             self.data2 = np.random.randint(0,2,len(inp))
+         else:
+             self.data0=np.random.randint(0,2,inp)
+             self.data1 = np.random.randint(0,2,inp)
+             self.data2 = np.random.randint(0,2,inp)
+         if Qb==False:
+             self.data0=encode(self.data1,len(self.data1))
+         #print(self.data0)
+             self.data2=decode(self.data0,len(self.data0))
+         ####Classical Channel
+         else:
+             self.data2=self.data1
          # State for alice
          #self.data1 = np.random.randint(0,2,2)
          #self.data2 = np.random.randint(0,2,2)
@@ -87,14 +99,13 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          self.state_space = (len(state[0]), len(state[1]))
          self.action_space = (3, 4)
-         #self.reset()
+         self.reset(maxm)
      def step(self, action, verbose=0):
          import numpy as np
      # Keep track of action list
          self.action_history.append(action)
          # Reset reward
          reward = 0
-         bk=[0]
          # If we have used 10 actions, game over
          if len(self.action_history) > self.max_moves:
              reward = 0
@@ -110,7 +121,9 @@ class Qprotocol:
                  if verbose:
                      print("Alice tried to read more bits than available")
                  else:
+                     print('This the input message data1 {}'.format(self.data1))
                      self.alice_datalog.append(self.data1[self.alice_data_counter])
+                     print('This is alice datalog:{}'.format(self.alice_datalog))
                      self.alice_data_counter += 1
                  if verbose:
                      print("Alice added data1 to the datalog ", self.alice_datalog)
@@ -181,16 +194,14 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          #bk=self.bob_key
          return state, reward, self.done, {'action_history':self.action_history},self.bob_key
-     def reset(self,maxm,inputm,encode=encoded,decode=decoded):
+     def reset(self,maxm):
          import numpy as np
          self.max_moves = maxm
          # State for alice
          #self.data0=np.random.randint(0,2,2)
          #self.data1 = np.random.randint(0,2,2)
-         self.data1=np.array(inputm)
-         self.data0=encode(self.data1,len(self.data1))
-         #print(self.data0)
-         self.data2=decode(self.data0,len(self.data0))
+         print('this is the bitstring message {} and the target message {}'.format(self.data1,self.data2))
+         #self.data1=self.data1#np.array(np.random.randint(0,2,inputm))
          z=[self.data1[i]==self.data2[i] for i in range(len(self.data1))]
          z=np.array(z)
          if z.all():
@@ -214,7 +225,7 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          self.state_space = (len(state[0]), len(state[1]))
          self.action_space = (3, 4)
-         return state
+         return state,self.data1
      def render(self):
          print("---Alice---")
          print("- Datalog: ", self.alice_datalog)
@@ -225,10 +236,177 @@ class Qprotocol:
          return
 import random
 random.seed(0)
+actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
 LogicalStates=np.array([[1,0],[0,1]])
 LogicalStates2bit=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
 LogicalStates3bit=np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
 LogicalStates4bit=np.array([[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]])
+def qtableu():
+    import pandas as pd
+    actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
+    statesColumns=[[-1.,-1.,-1.,-1.],
+    [0.,1.,2.,0.],
+    [0.,1.,2.,1.],
+    [1.,0.,2.,1.],
+    [2.,0.,2.,1.],
+    [2.,0.,1.,1.],
+    [1.,0.,2.,2.],
+    [0.,2.,1.,2.],
+    [2.,2.,1.,0.],
+    [2.,2.,2.,-1.],
+    [2.,0.,1.,2.],
+    [1.,2.,0.,2.],
+    [1.,2.,0.,0.],
+    [1.,1.,0.,2.],
+    [2.,1.,0.,0.],
+    [2.,2.,1.,-1.],
+    [2.,1.,0.,1.],
+    [2.,0.,2.,-1.],
+    [2.,0.,0.,1.],
+    [2.,1.,0.,2.],
+    [1.,0.,1.,2.],
+    [0.,2.,1.,0.],
+    [0.,2.,2.,1.],
+    [0.,1.,0.,2.],
+    [2.,1.,0.,-1.],
+    [0.,1.,2.,2.],
+    [0.,2.,0.,1.],               
+    [1.,2.,0.,1.],
+    [0.,0.,1.,2.],
+    [2.,1.,2.,0.],
+    [0.,1.,1.,-1.],
+    [0.,0.,2.,-1.],
+    [1.,2.,0.,-1.],
+    [1.,0.,1.,-1.],
+    [2.,2.,0.,-1.],
+    [0.,1.,1.,2.],
+    [1.,1.,2.,-1.],
+    [1.,0.,2.,-1.],
+    [2.,1.,-1.,-1.],
+    [2.,1.,1.,-1.],
+    [2.,0.,-1.,-1.],
+    [0.,2.,2.,-1.],
+    [1.,2.,1.,-1.],
+    [2.,0.,0.,-1.],
+    [1.,0.,0.,-1.],
+    [1.,0.,2.,0.],
+    [1.,2.,1.,0.],
+    [2.,0.,1.,-1.],
+    [2.,1.,1.,0.],
+    [0.,0.,1.,-1.],
+    [2.,2.,0.,1.],
+    [0.,2.,1.,1.],
+    [2.,1.,2.,-1.],
+    [1.,2.,2.,-1.],
+    [0.,0.,2.,1.],
+    [2.,0.,1.,0.],
+    [0.,1.,2.,-1.],
+    [1.,2.,2.,0.],
+    [0.,2.,0.,-1.],
+    [0.,1.,0.,-1.],
+    [0.,2.,1.,-1.],
+    [1.,0.,-1.,-1.],
+    [1.,2.,-1.,-1.],
+    [0.,1.,-1.,-1.],
+    [1.,1.,0.,-1.],
+    [1.,0.,0.,2.],              
+    [0.,2.,-1.,-1.],
+    [-1.,-1.,-1.,0.], 
+    [-1.,-1.,0.,-1.], 
+    [-1.,-1.,0.,0.], 
+    [-1.,0.,-1.,-1.], 
+    [-1.,0.,-1.,0.], 
+    [-1.,0.,0.,-1.], 
+    [-1.,0.,0.,0.], 
+    [0.,-1.,-1.,-1.], 
+    [0.,-1.,-1.,0.], 
+    [0.,-1.,0.,-1.], 
+    [0.,-1.,0.,0.], 
+    [0.,0.,-1.,-1.], 
+    [0.,0.,-1.,0.], 
+    [0.,0.,0.,-1.], 
+    [0.,0.,0.,0.], 
+    [-1.,-1.,-1.,1.], 
+    [-1.,-1.,1.,-1.], 
+    [-1.,-1.,1.,1.], 
+    [-1.,1.,-1.,-1.], 
+    [-1.,1.,-1.,1.], 
+    [-1.,1.,1.,-1.], 
+    [-1.,1.,1.,1.], 
+    [1.,-1.,-1.,-1.], 
+    [1.,-1.,-1.,1.], 
+    [1.,-1.,1.,-1.], 
+    [1.,-1.,1.,1.], 
+    [1.,1.,-1.,-1.], 
+    [1.,1.,-1.,1.], 
+    [1.,1.,1.,-1.], 
+    [-1.,-1.,-1.,2.], 
+    [-1.,-1.,2.,-1.], 
+    [-1.,-1.,2.,2.], 
+    [-1.,2.,-1.,-1.], 
+    [-1.,2.,-1.,1.], 
+    [-1.,2.,2.,-1.], 
+    [-1.,2.,2.,2.], 
+    [2.,-1.,-1.,-1.], 
+    [2.,-1.,-1.,2.], 
+    [2.,-1.,2.,-1.], 
+    [2.,-1.,2.,2.], 
+    [2.,2.,-1.,-1.], 
+    [2.,2.,-1.,2.], 
+    [0.,0.,0.,2.], 
+    [0.,0.,2.,0.], 
+    [0.,0.,2.,2.], 
+    [0.,2.,0.,0.], 
+    [0.,2.,0.,2.], 
+    [0.,2.,2.,0.], 
+    [0.,2.,2.,2.], 
+    [2.,0.,0.,0.], 
+    [2.,0.,0.,2.], 
+    [2.,0.,2.,0.], 
+    [2.,0.,2.,2.], 
+    [2.,2.,0.,0.], 
+    [2.,2.,0.,2.], 
+    [2.,2.,2.,0.], 
+    [1.,1.,1.,2.], 
+    [1.,1.,2.,1.], 
+    [1.,1.,2.,2.], 
+    [1.,2.,1.,1.], 
+    [1.,2.,1.,2.], 
+    [1.,2.,2.,1.], 
+    [1.,2.,2.,2.], 
+    [2.,1.,1.,1.], 
+    [2.,1.,1.,2.], 
+    [2.,1.,2.,1.], 
+    [2.,1.,2.,2.], 
+    [2.,2.,1.,1.], 
+    [2.,2.,1.,2.], 
+    [2.,2.,2.,1.], 
+    [2.,2.,2.,2.], 
+    [0.,0.,0.,1.], 
+    [0.,0.,1.,0.], 
+    [0.,0.,1.,1.], 
+    [0.,1.,0.,0.], 
+    [0.,1.,0.,1.], 
+    [0.,1.,1.,0.], 
+    [0.,1.,1.,1.], 
+    [1.,0.,0.,0.], 
+    [1.,0.,0.,1.], 
+    [1.,0.,1.,0.], 
+    [1.,0.,1.,1.], 
+    [1.,1.,0.,0.], 
+    [1.,1.,0.,1.], 
+    [1.,1.,1.,0.],
+    [1.,1.,2.,0.], 
+    [1.,1.,1.,1.]]
+    StateColumns=[]
+    for i in range(len(statesColumns)):
+        bob_keys=''.join(str(int(x)) for x in statesColumns[i][:len(statesColumns[i])])
+        StateColumns.append(bob_keys)
+    statesColumns=StateColumns
+    q=(len(statesColumns),len(actions_list))
+    Q=np.zeros(q)
+    Qtable=pd.DataFrame(Q.T,columns=statesColumns)
+    return Qtable
 import pandas as pd
 columns2bit=['00','01','10','11']
 columns3bit=['000','001','010','011','100','101','110','111']
@@ -255,6 +433,7 @@ def mannwhitney(total_episodes,error):
             resultss.append(['Qlearning p-value the p-value is less than we reject the null hypothesis:',pvalue])
     else:
         print('identical')
+        pvalue=0
     import matplotlib.pyplot as plt
     plt.figure(figsize=(13, 13))
     plt.bar(1,pvalue)
@@ -264,40 +443,42 @@ def mannwhitney(total_episodes,error):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     return resultss
-def Qlearning(Qtable,inp,onebit=False,twobit=False,threebit=False,fourbit=False):
+def Qlearning(Qtable,inp,ma=False,qp=False,onebit=False,twobit=False,threebit=False,fourbit=False,gamma_v=0.001,learning_ra=1e-3):
     import numpy as np
-    episodes=1000
+    episodes=500
     solved=0
     #actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
     steps_ep=[]
-    env=Qprotocol(4)
-    #q=(4,len(actions_list))
-    #print(state_n)
     total_episodes=[]
     total_fidelity=[]
     cum=[]
+    cumre=0
     testing=[]
+    staates=[]
     for episode in range(episodes):
         import matplotlib.pyplot as plt
-        gamma= 0.01
-        inpu=inp
-        learning_rate=0.001
-        state_n=env.reset(4,inpu)
+        gamma= gamma_v
+        learning_rate=learning_ra 
+        env=Qprotocol(4,inp,MultiAgent=ma,Qb=qp)
+        state_n,inpu=env.reset(4)
+        #state_n=str((state_n[0][0],state_n[0][1],state_n[0][2],state_n[0][3]))
         done=False
         reward_episode=[]
         steps=0
         reward=0
-        cumre=0
         while done!=True:
+            q_val=''.join(str(int(x)) for x in state_n[0][:len(state_n[0])])
+            print(q_val)
             steps+=1
-            random_values=Qtable[int(state_n[0][0])] + np.random.randint(11, size=(1,len(actions_list)))/1000
+            ravar=np.random.randint(11, size=(1,len(actions_list)))/1000
+            random_values=Qtable.loc[:,q_val] + ravar[0]#Qtable[str(state_n[0])] + np.random.randint(11, size=(1,len(actions_list)))/1000
+            print('This is the random value {}'.format(random_values))
             actiona=np.argmax(random_values)
-            q_val=(int(state_n[0][0]),actiona)
             action=np.array(actions_list[actiona])
-            #print('This is the action {}'.format(action))
             stat,reward,done,action_h,bob_key=env.step(action)
-            #print('the reward is {},the is done {}, this is the key of bob {}, this is the bitstring {}'.format(re,do,bob_key,data))
-            Qtable[q_val]=(1-learning_rate)*Qtable[q_val]+learning_rate * (reward + gamma * max(Qtable[int(stat[0][0])]))
+            q_val_n=''.join(str(int(x)) for x in stat[0][:len(stat[0])])#str((int(stat[0][0]),int(stat[0][1]),int(stat[0][2]),int(stat[0][3])))
+            print('the q_val {},the q_val_n {}, this is the action {}'.format(q_val,q_val_n,actiona))
+            Qtable[q_val][actiona]=(1-learning_rate)*Qtable[q_val][actiona]+learning_rate * (reward + gamma * max(Qtable.loc[:,q_val_n]) - Qtable[q_val][actiona])
             testing.append([action,reward])
             #print('This is the tabular {}'.format(Q))
             reward_episode.append(reward)
@@ -352,9 +533,7 @@ def Qlearning(Qtable,inp,onebit=False,twobit=False,threebit=False,fourbit=False)
     plt.ylabel('Fidelity')
     plt.grid(True,which="both",ls="--",c='gray')
     plt.title('The simulation has been solved the environment '+inpus+' Q learning fidelity:{}'.format(sum(total_fidelity)))
-    plt.show()
-    
-    
+    plt.show() 
     #print('The simulation has been solved the environment Q learning:{}'.format(solved/episodes))
     #print('The number of steps per episode that solved:{}'.format(np.round(np.mean(steps_ep))))
     plt.figure(figsize=(13, 13))
@@ -374,13 +553,10 @@ def Qlearning(Qtable,inp,onebit=False,twobit=False,threebit=False,fourbit=False)
     plt.show()
     error=env.error_counter
     results=mannwhitney(total_episodes,error)
-    results.append(['Reward:'+str(solved/episodes),'Cumulative:'+str(cum[-1]),'Steps:'+str(np.mean(steps_ep)),'Fidelity:'+str(sum(total_fidelity))])
+    results.append(['Reward:'+str(solved/episodes),'Cumulative:'+str(max(cum)),'Steps:'+str(np.mean(steps_ep)),'Fidelity:'+str(sum(total_fidelity))])
     return Qtable,results
 
-
-
-def OenvOagentsimulation(Qt,inp):
-    env=Qprotocol(4)
+def OenvOagentsimulation(Qt,inp,qp):
     total_re=[]
     steps_per_ep=[]
     solved=0
@@ -388,21 +564,22 @@ def OenvOagentsimulation(Qt,inp):
     total_fid=[]
     episodes = 100
     for ep in range(episodes):
-        inpu=inp
-        state_n=env.reset(4,inpu)
-        state_n=state_n[0][0]
+        env=Qprotocol(4,inp,Qb=qp)
+        state_n,inpu=env.reset(4)
+        print('This is the inpu {}'.format(inpu))
         done = False
         steps=0
         while done!=True:
-            action1 = np.argmax(Qt[int(state_n)])
+            state_n=''.join(str(int(x)) for x in state_n[0][:len(state_n[0])])
+            action1 = np.argmax(Qt[state_n])
             action1=np.array(actions_list[action1])
             stat,reward,done,action_h,bob_key=env.step(action1)
             steps+=1
-            state_n=stat[0][0]
+            state_n=stat
             if done==True:
                 bke=bob_key
             if done==True:
-                if len(inp)==1 and len(bke)==len(inpu):
+                if len(inpu)==1 and len(bke)==len(inpu):
                     tp=LogicalStates[:,inpu].T*LogicalStates[bke,:]
                     tp=tp[0]
                     inpus=str(inpu)
@@ -410,7 +587,7 @@ def OenvOagentsimulation(Qt,inp):
                     total_fid.append(Fidelity)
                 else:
                     total_fid.append(0)
-                if len(inp)==2 and len(bke)==len(inpu):
+                if len(inpu)==2 and len(bke)==len(inpu):
                     inpus=''.join(str(x) for x in inpu)
                     bk=''.join(str(x) for x in bke[:len(inpu)])
                     tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bk,:])
@@ -418,7 +595,7 @@ def OenvOagentsimulation(Qt,inp):
                     total_fid.append(Fidelity)
                 else:
                     total_fid.append(0)
-                if len(inp)==3 and len(bke)==len(inpu):
+                if len(inpu)==3 and len(bke)==len(inpu):
                     inpus=''.join(str(x) for x in inpu)
                     bk=''.join(str(x) for x in bke[:len(inpu)])
                     tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bk,:])
@@ -426,7 +603,7 @@ def OenvOagentsimulation(Qt,inp):
                     total_fid.append(Fidelity)
                 else:
                     total_fid.append(0)
-                if len(inp)==4 and len(bke)==len(inpu):
+                if len(inpu)==4 and len(bke)==len(inpu):
                     inpus=''.join(str(x) for x in inpu)
                     bk=''.join(str(x) for x in bke[:len(inpu)])
                     tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bk,:])
@@ -447,28 +624,28 @@ def OenvOagentsimulation(Qt,inp):
                     cum.append(solved)
                     break
     import matplotlib.pyplot as plt
-    print('The simulation has been solved the '+str(len(inp))+' environment Q learning:{}'.format(solved/episodes))
-    print('The number of steps per episode '+str(len(inp))+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
+    print('The simulation has been solved the '+str(inp)+' environment Q learning:{}'.format(solved/episodes))
+    print('The number of steps per episode '+str(inp)+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
     plt.figure(figsize=(13, 13))
     plt.plot(total_re)
     plt.xlabel(f'Number of episode')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('Total rewards environment '+str(len(inp))+' per episode :{}'.format(solved/episodes))
+    plt.title('Total rewards environment '+str(inp)+' per episode :{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fid)
     plt.xlabel(f'Number of episode')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('Total fidelity environment '+str(len(inp))+' per episode :{}'.format(sum(total_fid)))
+    plt.title('Total fidelity environment '+str(inp)+' per episode :{}'.format(sum(total_fid)))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(steps_per_ep)
     plt.xlabel(f'Number of episode')
     plt.ylabel('Number of Steps')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The number of steps per episode environment '+str(len(inp))+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
+    plt.title('The number of steps per episode environment '+str(inp)+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
     plt.show()
     error=env.error_counter
     results=mannwhitney(total_re,error)
@@ -478,9 +655,7 @@ def OenvOagentsimulation(Qt,inp):
 
 
 
-def onebitsimulation(Qt,Qt1):
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
+def onebitsimulation(Qt,Qt1,qp):
     total_re=[]
     steps_per_ep=[]
     solved=0
@@ -488,25 +663,27 @@ def onebitsimulation(Qt,Qt1):
     cum=[]
     episodes = 100
     for ep in range(episodes):
-        inpu=np.random.randint(0,2,1)
-        #print(inpu)
-        state_n=env.reset(4,inpu)
-        state_n=state_n[0][0]
-        state_n1=env1.reset(4,inpu)
-        state_n1=state_n1[0][0]
+        inp=np.random.randint(0,2,1)
+        env=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env1=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        state_n,inpu=env.reset(4)
+        state_n1,inpu=env1.reset(4)
         done = False
         done1=False
         steps=0
+        print(inpu)
         while done!=True or done1!=True:
-            action1 = np.argmax(Qt[int(state_n)])
-            action2 = np.argmax(Qt1[int(state_n1)])
+            state_n=''.join(str(int(x)) for x in state_n[0][:len(state_n[0])])
+            state_n1=''.join(str(int(x)) for x in state_n1[0][:len(state_n1[0])])
+            action1 = np.argmax(Qt[state_n])
+            action2 = np.argmax(Qt1[state_n1])
             action1=np.array(actions_list[action1])
             action2=np.array(actions_list[action2])
             stat,reward,done,action_h,bob_key=env.step(action1)
             stat1,reward1,done1,action_h1,bob_key1=env1.step(action2)
             steps+=1
-            state_n=stat[0][0]
-            state_n1=stat1[0][0]
+            state_n=stat
+            state_n1=stat1
             if done==True:
                 bk=bob_key
             if done1==True:
@@ -560,11 +737,7 @@ def onebitsimulation(Qt,Qt1):
     results.append([results1,'Reward:'+str(solved/episodes),'Cumulative:'+str(cum[-1]),'Steps:'+str(np.mean(steps_per_ep)),'Fidelity:'+str(sum(total_fid))])
     return results
 
-def twobitsimulation(Qt,Qt1,Qt2,Qt3):
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
-    env2=Qprotocol(4)
-    env3=Qprotocol(4)
+def twobitsimulation(Qt,Qt1,Qt2,Qt3,qp):
     total_re=[]
     steps_per_ep=[]
     solved=0
@@ -572,26 +745,30 @@ def twobitsimulation(Qt,Qt1,Qt2,Qt3):
     cum=[]
     episodes = 100
     for ep in range(episodes):
-        inpu=np.random.randint(0,2,2)
-        #print(inpu)
-        state_n=env.reset(4,inpu)
-        state_n=state_n[0][0]
-        state_n1=env1.reset(4,inpu)
-        state_n1=state_n1[0][0]
-        state_n2=env2.reset(4,inpu)
-        state_n2=state_n2[0][0]
-        state_n3=env3.reset(4,inpu)
-        state_n3=state_n3[0][0]
+        inp=np.random.randint(0,2,2)
+        env=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env1=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env2=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env3=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        state_n,inpu=env.reset(4)
+        state_n1,inpu1=env1.reset(4)
+        state_n2,inpu2=env2.reset(4)
+        state_n3,inpu3=env3.reset(4)
+        print('This is the initial message {},{},{},{}'.format(inpu,inpu1,inpu2,inpu3))
         done = False
         done1=False
         done2=False
         done3=False
         steps=0
         while done!=True or done1!=True or done2!=True or done3!=True:
-            action1 = np.argmax(Qt[int(state_n)])
-            action2 = np.argmax(Qt1[int(state_n1)])
-            action3 = np.argmax(Qt2[int(state_n2)])
-            action4 = np.argmax(Qt3[int(state_n3)])
+            state_n=''.join(str(int(x)) for x in state_n[0][:len(state_n[0])])
+            state_n1=''.join(str(int(x)) for x in state_n1[0][:len(state_n1[0])])
+            state_n2=''.join(str(int(x)) for x in state_n2[0][:len(state_n2[0])])
+            state_n3=''.join(str(int(x)) for x in state_n3[0][:len(state_n3[0])])
+            action1 = np.argmax(Qt[state_n])
+            action2 = np.argmax(Qt1[state_n1])
+            action3 = np.argmax(Qt2[state_n2])
+            action4 = np.argmax(Qt3[state_n3])
             action1=np.array(actions_list[action1])
             action2=np.array(actions_list[action2])
             action3=np.array(actions_list[action3])
@@ -601,10 +778,10 @@ def twobitsimulation(Qt,Qt1,Qt2,Qt3):
             stat2,reward2,done2,action_h2,bob_key2=env2.step(action3)
             stat3,reward3,done3,action_h3,bob_key3=env3.step(action4)
             steps+=1
-            state_n=stat[0][0]
-            state_n1=stat1[0][0]
-            state_n2=stat2[0][0]
-            state_n3=stat3[0][0]
+            state_n=stat
+            state_n1=stat1
+            state_n2=stat2
+            state_n3=stat3
             if done==True:
                 bk=bob_key
             if done1==True:
@@ -668,15 +845,7 @@ def twobitsimulation(Qt,Qt1,Qt2,Qt3):
     results.append([results1,results2,results3,'Reward:'+str(solved/episodes),'Cumulative:'+str(cum[-1]),'Steps:'+str(np.mean(steps_per_ep)),'Fidelity:'+str(sum(total_fid))])
     return results
 
-def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
-    env2=Qprotocol(4)
-    env3=Qprotocol(4)
-    env4=Qprotocol(4)
-    env5=Qprotocol(4)
-    env6=Qprotocol(4)
-    env7=Qprotocol(4)
+def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,qp):
     total_re=[]
     cum=[]
     steps_per_ep=[]
@@ -684,24 +853,25 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
     total_fid=[]
     episodes = 100
     for ep in range(episodes):
-        inpu=np.random.randint(0,2,3)
+        inp=np.random.randint(0,2,3)
         #print(inpu)
-        state_n=env.reset(4,inpu)
-        state_n=state_n[0][0]
-        state_n1=env1.reset(4,inpu)
-        state_n1=state_n1[0][0]
-        state_n2=env2.reset(4,inpu)
-        state_n2=state_n2[0][0]
-        state_n3=env3.reset(4,inpu)
-        state_n3=state_n3[0][0]
-        state_n4=env4.reset(4,inpu)
-        state_n4=state_n4[0][0]
-        state_n5=env5.reset(4,inpu)
-        state_n5=state_n5[0][0]
-        state_n6=env6.reset(4,inpu)
-        state_n6=state_n6[0][0]
-        state_n7=env7.reset(4,inpu)
-        state_n7=state_n7[0][0]
+        env=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env1=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env2=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env3=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env4=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env5=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env6=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env7=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        state_n,inpu=env.reset(4)
+        state_n1,inpu1=env1.reset(4)
+        state_n2,inpu2=env2.reset(4)
+        state_n3,inpu3=env3.reset(4)
+        state_n4,inpu4=env4.reset(4)
+        state_n5,inpu5=env5.reset(4)
+        state_n6,inpu6=env6.reset(4)
+        state_n7,inpu7=env7.reset(4)
+        print(inpu,inpu1,inpu2,inpu3,inpu4,inpu5,inpu6,inpu7)
         done = False
         done1=False
         done2=False
@@ -712,14 +882,22 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
         done7=False
         steps=0
         while done!=True or done1!=True or done2!=True or done3!=True or done4!=True or done5!=True or done6!=True or done7!=True:# or done8!=True or done9!=True or done10!=True or done11!=True or done12!=True or done13!=True or done14!=True or done15!=True or done16!=True:
-            action1 = np.argmax(Qt[int(state_n)])
-            action2 = np.argmax(Qt1[int(state_n1)])
-            action3 = np.argmax(Qt2[int(state_n2)])
-            action4 = np.argmax(Qt3[int(state_n3)])
-            action5 = np.argmax(Qt4[int(state_n4)])
-            action6 = np.argmax(Qt5[int(state_n5)])
-            action7 = np.argmax(Qt6[int(state_n6)])
-            action8 = np.argmax(Qt7[int(state_n7)])
+            state_n=''.join(str(int(x)) for x in state_n[0][:len(state_n[0])])
+            state_n1=''.join(str(int(x)) for x in state_n1[0][:len(state_n1[0])])
+            state_n2=''.join(str(int(x)) for x in state_n2[0][:len(state_n2[0])])
+            state_n3=''.join(str(int(x)) for x in state_n3[0][:len(state_n3[0])])
+            state_n4=''.join(str(int(x)) for x in state_n4[0][:len(state_n4[0])])
+            state_n5=''.join(str(int(x)) for x in state_n5[0][:len(state_n5[0])])
+            state_n6=''.join(str(int(x)) for x in state_n6[0][:len(state_n6[0])])
+            state_n7=''.join(str(int(x)) for x in state_n7[0][:len(state_n7[0])])
+            action1 = np.argmax(Qt[state_n])
+            action2 = np.argmax(Qt1[state_n1])
+            action3 = np.argmax(Qt2[state_n2])
+            action4 = np.argmax(Qt3[state_n3])
+            action5 = np.argmax(Qt4[state_n4])
+            action6 = np.argmax(Qt5[state_n5])
+            action7 = np.argmax(Qt6[state_n6])
+            action8 = np.argmax(Qt7[state_n7])
             action1=np.array(actions_list[action1])
             action2=np.array(actions_list[action2])
             action3=np.array(actions_list[action3])
@@ -737,14 +915,14 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
             stat6,reward6,done6,action_h6,bob_key6=env6.step(action7)
             stat7,reward7,done7,action_h7,bob_key7=env7.step(action8)
             steps+=1
-            state_n=stat[0][0]
-            state_n1=stat1[0][0]
-            state_n2=stat2[0][0]
-            state_n3=stat3[0][0]
-            state_n4=stat4[0][0]
-            state_n5=stat5[0][0]
-            state_n6=stat6[0][0]
-            state_n7=stat7[0][0]
+            state_n=stat
+            state_n1=stat1
+            state_n2=stat2
+            state_n3=stat3
+            state_n4=stat4
+            state_n5=stat5
+            state_n6=stat6
+            state_n7=stat7
             if done==True:
                 bk=bob_key
             if done1==True:
@@ -764,12 +942,15 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
             if done==True or done1==True or done2==True or done3==True or done4==True or done5==True or done6==True or done7==True:# or do7==True or do8==True or do9 ==True or do10 == True or do11==True or do12==True or do13==True or do14==True:# or do15==True or do16==True:
                 #tp=LogicalStates[:,inpu].T*LogicalStates[bk,:]
                 #tp=tp[0]
-                inpus=''.join(str(x) for x in inpu)
-                bk=''.join(str(x) for x in bk[:len(inpu)])
-                #tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bk,:])
-                tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bk,:])
-                Fidelity=abs(sum(tp))**2
-                total_fid.append(Fidelity)
+                if len(bk)==len(inpu):
+                    inpus=''.join(str(x) for x in inpu)
+                    bk=''.join(str(x) for x in bk[:len(inpu)])
+                    #tp=np.array(LogicalStates2bit.loc[:,inpus]).T*np.array(LogicalStates2bit.loc[bk,:])
+                    tp=np.array(LogicalStates3bit.loc[:,inpus]).T*np.array(LogicalStates3bit.loc[bk,:])
+                    Fidelity=abs(sum(tp))**2
+                    total_fid.append(Fidelity)
+                else:
+                    total_fid.append(0)
                 if reward==1 or reward1==1 or reward2==1 or reward3==1 or  reward5==1 or reward6==1 or  reward7==1:
                     total_re.append(1)                
                     steps_per_ep.append(steps)
@@ -784,28 +965,28 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
                     break
                 #if re==1:
     import matplotlib.pyplot as plt
-    print('The simulation has been solved the '+inpus+' environment Q learning:{}'.format(solved/episodes))
-    print('The number of steps per episode '+inpus+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
+    print('The simulation has been solved the '+str(len(inp))+' environment Q learning:{}'.format(solved/episodes))
+    print('The number of steps per episode '+str(len(inp))+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
     plt.figure(figsize=(13, 13))
     plt.plot(total_re)
     plt.xlabel(f'Number of episode')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('Total rewards per episode '+inpus+' :{}'.format(solved/episodes))
+    plt.title('Total rewards per episode '+str(len(inp))+' :{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fid)
     plt.xlabel(f'Number of episode')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('Total fidelity per episode '+inpus+':{}'.format(sum(total_fid)))
+    plt.title('Total fidelity per episode '+str(len(inp))+':{}'.format(sum(total_fid)))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(steps_per_ep)
     plt.xlabel(f'Number of episode')
     plt.ylabel('Number of Steps')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The number of steps per episode '+inpus+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
+    plt.title('The number of steps per episode '+str(len(inp))+' that solved:{}'.format(np.round(np.mean(steps_per_ep))))
     plt.show()
     error=env.error_counter
     error1=env1.error_counter
@@ -827,23 +1008,7 @@ def threebitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7):
     return results
 
 
-def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13,Qt14,Qt15):
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
-    env2=Qprotocol(4)
-    env3=Qprotocol(4)
-    env4=Qprotocol(4)
-    env5=Qprotocol(4)
-    env6=Qprotocol(4)
-    env7=Qprotocol(4)
-    env8=Qprotocol(4)
-    env9=Qprotocol(4)
-    env10=Qprotocol(4)
-    env11=Qprotocol(4)
-    env12=Qprotocol(4)
-    env13=Qprotocol(4)
-    env14=Qprotocol(4)
-    env15=Qprotocol(4)
+def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13,Qt14,Qt15,qp):
     total_re=[]
     steps_per_ep=[]
     solved=0
@@ -851,39 +1016,39 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
     total_fid=[]
     episodes = 100
     for ep in range(episodes):
-        inpu=np.random.randint(0,2,4)
-        state_n=env.reset(4,inpu)
-        state_n=state_n[0][0]
-        state_n1=env1.reset(4,inpu)
-        state_n1=state_n1[0][0]
-        state_n2=env2.reset(4,inpu)
-        state_n2=state_n2[0][0]
-        state_n3=env3.reset(4,inpu)
-        state_n3=state_n3[0][0]
-        state_n4=env4.reset(4,inpu)
-        state_n4=state_n4[0][0]
-        state_n5=env5.reset(4,inpu)
-        state_n5=state_n5[0][0]
-        state_n6=env6.reset(4,inpu)
-        state_n6=state_n6[0][0]
-        state_n7=env7.reset(4,inpu)
-        state_n7=state_n7[0][0]
-        state_n8=env8.reset(4,inpu)
-        state_n8=state_n8[0][0]
-        state_n9=env9.reset(4,inpu)
-        state_n9=state_n9[0][0]
-        state_n10=env10.reset(4,inpu)
-        state_n10=state_n10[0][0]
-        state_n11=env11.reset(4,inpu)
-        state_n11=state_n11[0][0]
-        state_n12=env12.reset(4,inpu)
-        state_n12=state_n12[0][0]
-        state_n13=env13.reset(4,inpu)
-        state_n13=state_n13[0][0]
-        state_n14=env14.reset(4,inpu)
-        state_n14=state_n14[0][0]
-        state_n15=env15.reset(4,inpu)
-        state_n15=state_n15[0][0]
+        inp=np.random.randint(0,2,4)
+        env=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env1=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env2=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env3=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env4=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env5=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env6=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env7=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env8=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env9=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env10=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env11=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env12=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env13=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env14=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        env15=Qprotocol(4,inp,MultiAgent=True,Qb=qp)
+        state_n,inpu=env.reset(4)
+        state_n1,inpu1=env1.reset(4)
+        state_n2,inpu2=env2.reset(4)
+        state_n3,inpu3=env3.reset(4)
+        state_n4,inpu4=env4.reset(4)
+        state_n5,inpu5=env5.reset(4)
+        state_n6,inpu6=env6.reset(4)
+        state_n7,inpu7=env7.reset(4)
+        state_n8,inpu8=env8.reset(4)
+        state_n9,inpu9=env9.reset(4)
+        state_n10,inpu10=env10.reset(4)
+        state_n11,inpu11=env11.reset(4)
+        state_n12,inpu12=env12.reset(4)
+        state_n13,inpu13=env13.reset(4)
+        state_n14,inpu14=env14.reset(4)
+        state_n15,inpu15=env15.reset(4)
         done=False
         done1=False
         done2=False
@@ -902,22 +1067,38 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
         done15=False
         steps=0
         while done!=True or done1!=True or done2!=True or done3!=True or done4!=True or done5!=True or done6!=True or done7!=True or done8!=True or done9!=True or done10!=True or done11!=True or done12!=True or done13!=True or done14!=True or done15!=True:# or done15!=True or done16!=True:
-            action1 = np.argmax(Qt[int(state_n)])
-            action2 = np.argmax(Qt1[int(state_n1)])
-            action3 = np.argmax(Qt2[int(state_n2)])
-            action4 = np.argmax(Qt3[int(state_n3)])
-            action5 = np.argmax(Qt4[int(state_n4)])
-            action6 = np.argmax(Qt5[int(state_n5)])
-            action7 = np.argmax(Qt6[int(state_n6)])
-            action8 = np.argmax(Qt7[int(state_n7)])
-            action9 = np.argmax(Qt8[int(state_n8)])
-            action10 = np.argmax(Qt9[int(state_n9)])
-            action11 = np.argmax(Qt10[int(state_n10)])
-            action12 = np.argmax(Qt11[int(state_n11)])
-            action13 = np.argmax(Qt12[int(state_n12)])
-            action14 = np.argmax(Qt13[int(state_n13)])
-            action15 = np.argmax(Qt14[int(state_n14)])
-            action16 = np.argmax(Qt15[int(state_n15)])
+            state_n=''.join(str(int(x)) for x in state_n[0][:len(state_n[0])])
+            state_n1=''.join(str(int(x)) for x in state_n1[0][:len(state_n1[0])])
+            state_n2=''.join(str(int(x)) for x in state_n2[0][:len(state_n2[0])])
+            state_n3=''.join(str(int(x)) for x in state_n3[0][:len(state_n3[0])])
+            state_n4=''.join(str(int(x)) for x in state_n4[0][:len(state_n4[0])])
+            state_n5=''.join(str(int(x)) for x in state_n5[0][:len(state_n5[0])])
+            state_n6=''.join(str(int(x)) for x in state_n6[0][:len(state_n6[0])])
+            state_n7=''.join(str(int(x)) for x in state_n7[0][:len(state_n7[0])])
+            state_n8=''.join(str(int(x)) for x in state_n8[0][:len(state_n8[0])])
+            state_n9=''.join(str(int(x)) for x in state_n9[0][:len(state_n9[0])])
+            state_n10=''.join(str(int(x)) for x in state_n10[0][:len(state_n10[0])])
+            state_n11=''.join(str(int(x)) for x in state_n11[0][:len(state_n11[0])])
+            state_n12=''.join(str(int(x)) for x in state_n12[0][:len(state_n12[0])])
+            state_n13=''.join(str(int(x)) for x in state_n13[0][:len(state_n13[0])])
+            state_n14=''.join(str(int(x)) for x in state_n14[0][:len(state_n14[0])])
+            state_n15=''.join(str(int(x)) for x in state_n15[0][:len(state_n15[0])])
+            action1 = np.argmax(Qt[state_n])
+            action2 = np.argmax(Qt1[state_n1])
+            action3 = np.argmax(Qt2[state_n2])
+            action4 = np.argmax(Qt3[state_n3])
+            action5 = np.argmax(Qt4[state_n4])
+            action6 = np.argmax(Qt5[state_n5])
+            action7 = np.argmax(Qt6[state_n6])
+            action8 = np.argmax(Qt7[state_n7])
+            action9 = np.argmax(Qt8[state_n8])
+            action10 = np.argmax(Qt9[state_n9])
+            action11 = np.argmax(Qt10[state_n10])
+            action12 = np.argmax(Qt11[state_n11])
+            action13 = np.argmax(Qt12[state_n12])
+            action14 = np.argmax(Qt13[state_n13])
+            action15 = np.argmax(Qt14[state_n14])
+            action16 = np.argmax(Qt15[state_n15])
             action1=np.array(actions_list[action1])
             action2=np.array(actions_list[action2])
             action3=np.array(actions_list[action3])
@@ -951,22 +1132,22 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
             stat14,reward14,done14,action_h14,bob_key14=env14.step(action15)
             stat15,reward15,done15,action_h15,bob_key15=env15.step(action16)
             steps+=1
-            state_n=stat[0][0]
-            state_n1=stat1[0][0]
-            state_n2=stat2[0][0]
-            state_n3=stat3[0][0]
-            state_n4=stat4[0][0]
-            state_n5=stat5[0][0]
-            state_n6=stat6[0][0]
-            state_n7=stat7[0][0]
-            state_n8=stat8[0][0]
-            state_n9=stat9[0][0]
-            state_n10=stat10[0][0]
-            state_n11=stat11[0][0]
-            state_n12=stat12[0][0]
-            state_n13=stat13[0][0]
-            state_n14=stat14[0][0]
-            state_n15=stat15[0][0]
+            state_n=stat
+            state_n1=stat1
+            state_n2=stat2
+            state_n3=stat3
+            state_n4=stat4
+            state_n5=stat5
+            state_n6=stat6
+            state_n7=stat7
+            state_n8=stat8
+            state_n9=stat9
+            state_n10=stat10
+            state_n11=stat11
+            state_n12=stat12
+            state_n13=stat13
+            state_n14=stat14
+            state_n15=stat15
             if done==True:
                 bk=bob_key
             if done1==True:
@@ -1083,130 +1264,259 @@ def fourbitsimulation(Qt,Qt1,Qt2,Qt3,Qt4,Qt5,Qt6,Qt7,Qt8,Qt9,Qt10,Qt11,Qt12,Qt13
     return results
 
 
-actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
-q=(4,len(actions_list))
-
-Q=np.zeros(q)
-Q,r=Qlearning(Q,np.random.randint(0,2,1),onebit=True)
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,1,onebit=True)
 print(r,file=open('randomOneBitQlTraining.txt','w'))
-r=OenvOagentsimulation(Q,np.random.randint(0,2,1))
+r=OenvOagentsimulation(Q,1,qp=False)
 print(r,file=open('randomOneBitQlTesting.txt','w'))
-Q=np.zeros(q)
-Q,r=Qlearning(Q,np.random.randint(0,2,2),twobit=True)
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,2,twobit=True,gamma_v=0.0001,learning_ra=1e-3)
 print(r,file=open('randomTwoBitQlTraining.txt','w'))
-r=OenvOagentsimulation(Q,np.random.randint(0,2,2))
+r=OenvOagentsimulation(Q,2,qp=False)
 print(r,file=open('randomTwoBitQlTesting.txt','w'))
-Q=np.zeros(q)
-Q,r=Qlearning(Q,np.random.randint(0,2,3),threebit=True)
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,3,threebit=True)
 print(r,file=open('randomThreeBitQlTraining.txt','w'))
-r=OenvOagentsimulation(Q,np.random.randint(0,2,3))
+r=OenvOagentsimulation(Q,3,qp=False)
 print(r,file=open('randomThreeBitQlTesting.txt','w'))
-Q=np.zeros(q)
-Q,r=Qlearning(Q,np.random.randint(0,2,4),fourbit=True)
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,4,fourbit=True)
 print(r,file=open('randomFourBitQlTraining.txt','w'))
-r=OenvOagentsimulation(Q,np.random.randint(0,2,4))
+r=OenvOagentsimulation(Q,4,False)
 print(r,file=open('randomFourBitQlTesting.txt','w'))
 
 
-Q=np.zeros(q)
-Q,r=Qlearning(Q,[0],onebit=True)
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,[0],True,onebit=True)
 print(r,file=open('randomOne[0]BitQlTraining.txt','w'))
-Q1=np.zeros(q)
-Q1,r=Qlearning(Q1,[0],onebit=True)
+Qtable=qtableu()
+Q1,r=Qlearning(Qtable,[1],True,onebit=True)
 print(r,file=open('randomOne[1]BitQlTraining.txt','w'))
-r=onebitsimulation(Q,Q1)
+r=onebitsimulation(Q,Q1,False)
 print(r,file=open('randomOneMULTIBitQlTesting.txt','w'))
 
 
-Q=np.zeros(q)
-Q,r=Qlearning(Q,[0,0],twobit=True)
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,[0,0],True,twobit=True)
 print(r,file=open('randomTwo[0,0]BitQlTraining.txt','w'))
-Q1=np.zeros(q)
-Q1,r=Qlearning(Q1,[0,1],twobit=True)
+Qtable=qtableu()
+Q1,r=Qlearning(Qtable,[0,1],True,twobit=True)
 print(r,file=open('randomTwo[0,1]BitQlTraining.txt','w'))
-Q2=np.zeros(q)
-Q2,r=Qlearning(Q2,[1,0],twobit=True)
+Qtable=qtableu()
+Q2,r=Qlearning(Qtable,[1,0],True,twobit=True)
 print(r,file=open('randomTwo[1,0]BitQlTraining.txt','w'))
-Q3=np.zeros(q)
-Q3,r=Qlearning(Q3,[1,1],twobit=True)
+Qtable=qtableu()
+Q3,r=Qlearning(Qtable,[1,1],True,twobit=True)
 print(r,file=open('randomTwo[1,1]BitQlTraining.txt','w'))
-r=twobitsimulation(Q,Q1,Q2,Q3)
+r=twobitsimulation(Q,Q1,Q2,Q3,False)
 print(r,file=open('randomTwoMULTIBitQlTesting.txt','w'))
 
 
-Q=np.zeros(q)
-Q,r=Qlearning(Q,[0,0,0],threebit=True)
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,[0,0,0],True,threebit=True)
 print(r,file=open('randomThree[0,0,0]BitQlTraining.txt','w'))
-Q1=np.zeros(q)
-Q1,r=Qlearning(Q1,[0,0,1],threebit=True)
+Qtable=qtableu()
+Q1,r=Qlearning(Qtable,[0,0,1],True,threebit=True)
 print(r,file=open('randomThree[0,0,1]BitQlTraining.txt','w'))
-Q2=np.zeros(q)
-Q2,r=Qlearning(Q2,[0,1,0],threebit=True)
+Qtable=qtableu()
+Q2,r=Qlearning(Qtable,[0,1,0],True,threebit=True)
 print(r,file=open('randomThree[0,1,0]BitQlTraining.txt','w'))
-Q3=np.zeros(q)
-Q3,r=Qlearning(Q3,[0,1,1],threebit=True)
+Qtable=qtableu()
+Q3,r=Qlearning(Qtable,[0,1,1],True,threebit=True)
 print(r,file=open('randomThree[0,1,1]BitQlTraining.txt','w'))
-Q4=np.zeros(q)
-Q4,r=Qlearning(Q4,[1,0,0],threebit=True)
+Qtable=qtableu()
+Q4,r=Qlearning(Qtable,[1,0,0],True,threebit=True)
 print(r,file=open('randomThree[1,0,0]BitQlTraining.txt','w'))
-Q5=np.zeros(q)
-Q5,r=Qlearning(Q5,[1,0,1],threebit=True)
+Qtable=qtableu()
+Q5,r=Qlearning(Qtable,[1,0,1],True,threebit=True)
 print(r,file=open('randomThree[1,0,1]BitQlTraining.txt','w'))
-Q6=np.zeros(q)
-Q6,r=Qlearning(Q6,[1,1,0],threebit=True)
+Qtable=qtableu()
+Q6,r=Qlearning(Qtable,[1,1,0],True,threebit=True)
 print(r,file=open('randomThree[1,1,0]BitQlTraining.txt','w'))
-Q7=np.zeros(q)
-Q7,r=Qlearning(Q7,[1,1,1],threebit=True)
+Qtable=qtableu()
+Q7,r=Qlearning(Qtable,[1,1,1],True,threebit=True)
 print(r,file=open('randomThree[1,1,1]BitQlTraining.txt','w'))
-r=threebitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7)
+r=threebitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7,False)
 print(r,file=open('randomThreeMULTIBitQlTesting.txt','w'))
-Q=np.zeros(q)
-Q,r=Qlearning(Q,[0,0,0,0],fourbit=True)
+
+
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,[0,0,0,0],True,fourbit=True)
 print(r,file=open('randomFour[0,0,0,0]BitQlTraining.txt','w'))
-Q1=np.zeros(q)
-Q1,r=Qlearning(Q1,[0,0,0,1],fourbit=True)
+Qtable=qtableu()
+Q1,r=Qlearning(Qtable,[0,0,0,1],True,fourbit=True)
 print(r,file=open('randomFour[0,0,0,1]BitQlTraining.txt','w'))
-Q2=np.zeros(q)
-Q2,r=Qlearning(Q2,[0,0,1,0],fourbit=True)
+Qtable=qtableu()
+Q2,r=Qlearning(Qtable,[0,0,1,0],True,fourbit=True)
 print(r,file=open('randomFour[0,0,1,0]BitQlTraining.txt','w'))
-Q3=np.zeros(q)
-Q3,r=Qlearning(Q3,[0,0,1,1],fourbit=True)
+Qtable=qtableu()
+Q3,r=Qlearning(Qtable,[0,0,1,1],True,fourbit=True)
 print(r,file=open('randomFour[0,0,1,1]BitQlTraining.txt','w'))
-Q4=np.zeros(q)
-Q4,r=Qlearning(Q4,[0,1,0,0],fourbit=True)
+Qtable=qtableu()
+Q4,r=Qlearning(Qtable,[0,1,0,0],True,fourbit=True)
 print(r,file=open('randomFour[0,1,0,0]BitQlTraining.txt','w'))
-Q5=np.zeros(q)
-Q5,r=Qlearning(Q5,[0,1,0,1],fourbit=True)
+Qtable=qtableu()
+Q5,r=Qlearning(Qtable,[0,1,0,1],True,fourbit=True)
 print(r,file=open('randomFour[0,1,0,1]BitQlTraining.txt','w'))
-Q6=np.zeros(q)
-Q6,r=Qlearning(Q6,[0,1,1,0],fourbit=True)
+Qtable=qtableu()
+Q6,r=Qlearning(Qtable,[0,1,1,0],True,fourbit=True)
 print(r,file=open('randomFour[0,1,1,0]BitQlTraining.txt','w'))
-Q7=np.zeros(q)
-Q7,r=Qlearning(Q7,[0,1,1,1],fourbit=True)
+Qtable=qtableu()
+Q7,r=Qlearning(Qtable,[0,1,1,1],True,fourbit=True)
 print(r,file=open('randomFour[0,1,1,1]BitQlTraining.txt','w'))
-Q8=np.zeros(q)
-Q8,r=Qlearning(Q8,[1,0,0,0],fourbit=True)
+Qtable=qtableu()
+Q8,r=Qlearning(Qtable,[1,0,0,0],True,fourbit=True)
 print(r,file=open('randomFour[1,0,0,0]BitQlTraining.txt','w'))
-Q9=np.zeros(q)
-Q9,r=Qlearning(Q9,[1,0,0,1],fourbit=True)
+Qtable=qtableu()
+Q9,r=Qlearning(Qtable,[1,0,0,1],True,fourbit=True)
 print(r,file=open('randomFour[1,0,0,1]BitQlTraining.txt','w'))
-Q10=np.zeros(q)
-Q10,r=Qlearning(Q10,[1,0,1,0],fourbit=True)
+Qtable=qtableu()
+Q10,r=Qlearning(Qtable,[1,0,1,0],True,fourbit=True)
 print(r,file=open('randomFour[1,0,1,0]BitQlTraining.txt','w'))
-Q11=np.zeros(q)
-Q11,r=Qlearning(Q11,[1,0,1,1],fourbit=True)
+Qtable=qtableu()
+Q11,r=Qlearning(Qtable,[1,0,1,1],True,fourbit=True)
 print(r,file=open('randomFour[1,0,1,1]BitQlTraining.txt','w'))
-Q12=np.zeros(q)
-Q12,r=Qlearning(Q12,[1,1,0,0],fourbit=True)
+Qtable=qtableu()
+Q12,r=Qlearning(Qtable,[1,1,0,0],True,fourbit=True)
 print(r,file=open('randomFour[1,1,0,0]BitQlTraining.txt','w'))
-Q13=np.zeros(q)
-Q13,r=Qlearning(Q13,[1,1,0,1],fourbit=True)
+Qtable=qtableu()
+Q13,r=Qlearning(Qtable,[1,1,0,1],True,fourbit=True)
 print(r,file=open('randomFour[1,1,0,1]BitQlTraining.txt','w'))
-Q14=np.zeros(q)
-Q14,r=Qlearning(Q14,[1,1,1,0],fourbit=True)
+Qtable=qtableu()
+Q14,r=Qlearning(Qtable,[1,1,1,0],True,fourbit=True)
 print(r,file=open('randomFour[1,1,1,0]BitQlTraining.txt','w'))
-Q15=np.zeros(q)
-Q15,r=Qlearning(Q15,[1,1,1,1],fourbit=True)
+Qtable=qtableu()
+Q15,r=Qlearning(Qtable,[1,1,1,1],True,fourbit=True)
 print(r,file=open('randomFour[1,1,1,1]BitQlTraining.txt','w'))
-r=fourbitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,Q11,Q12,Q13,Q14,Q15)
+r=fourbitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,Q11,Q12,Q13,Q14,Q15,False)
 print(r,file=open('randomFourMULTIBitqlTesting.txt','w'))
+
+# =============================================================================
+#   Quantum Protocol 
+# =============================================================================
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,1,qp=True,onebit=True)
+print(r,file=open('randomOneQBitQlTraining.txt','w'))
+r=OenvOagentsimulation(Q,1,qp=True)
+print(r,file=open('randomOneQBitQlTesting.txt','w'))
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,2,qp=True,twobit=True,gamma_v=0.0001,learning_ra=1e-3)
+print(r,file=open('randomTwoQBitQlTraining.txt','w'))
+r=OenvOagentsimulation(Q,2,qp=True)
+print(r,file=open('randomTwoQBitQlTesting.txt','w'))
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,3,qp=True,threebit=True)
+print(r,file=open('randomThreeBitQlTraining.txt','w'))
+r=OenvOagentsimulation(Q,3,qp=True)
+print(r,file=open('randomThreeQBitQlTesting.txt','w'))
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,4,qp=True,fourbit=True)
+print(r,file=open('randomFourQBitQlTraining.txt','w'))
+r=OenvOagentsimulation(Q,4,qp=True)
+print(r,file=open('randomFourQBitQlTesting.txt','w'))
+
+
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,[0],True,qp=True,onebit=True)
+print(r,file=open('randomOne[0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q1,r=Qlearning(Qtable,[1],True,qp=True,onebit=True)
+print(r,file=open('randomOne[1]QBitQlTraining.txt','w'))
+r=onebitsimulation(Q,Q1,True)
+print(r,file=open('randomOneMULTIQBitQlTesting.txt','w'))
+
+
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,[0,0],True,qp=True,twobit=True)
+print(r,file=open('randomTwo[0,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q1,r=Qlearning(Qtable,[0,1],True,qp=True,twobit=True)
+print(r,file=open('randomTwo[0,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q2,r=Qlearning(Qtable,[1,0],True,qp=True,twobit=True)
+print(r,file=open('randomTwo[1,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q3,r=Qlearning(Qtable,[1,1],True,qp=True,twobit=True)
+print(r,file=open('randomTwo[1,1]QBitQlTraining.txt','w'))
+r=twobitsimulation(Q,Q1,Q2,Q3,True)
+print(r,file=open('randomTwoMULTIQBitQlTesting.txt','w'))
+
+
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,[0,0,0],True,qp=True,threebit=True)
+print(r,file=open('randomThree[0,0,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q1,r=Qlearning(Qtable,[0,0,1],True,qp=True,threebit=True)
+print(r,file=open('randomThree[0,0,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q2,r=Qlearning(Qtable,[0,1,0],True,qp=True,threebit=True)
+print(r,file=open('randomThree[0,1,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q3,r=Qlearning(Qtable,[0,1,1],True,qp=True,threebit=True)
+print(r,file=open('randomThree[0,1,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q4,r=Qlearning(Qtable,[1,0,0],True,qp=True,threebit=True)
+print(r,file=open('randomThree[1,0,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q5,r=Qlearning(Qtable,[1,0,1],True,qp=True,threebit=True)
+print(r,file=open('randomThree[1,0,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q6,r=Qlearning(Qtable,[1,1,0],True,qp=True,threebit=True)
+print(r,file=open('randomThree[1,1,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q7,r=Qlearning(Qtable,[1,1,1],True,qp=True,threebit=True)
+print(r,file=open('randomThree[1,1,1]QBitQlTraining.txt','w'))
+r=threebitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7,True)
+print(r,file=open('randomThreeMULTIQBitQlTesting.txt','w'))
+
+
+Qtable=qtableu()
+Q,r=Qlearning(Qtable,[0,0,0,0],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[0,0,0,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q1,r=Qlearning(Qtable,[0,0,0,1],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[0,0,0,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q2,r=Qlearning(Qtable,[0,0,1,0],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[0,0,1,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q3,r=Qlearning(Qtable,[0,0,1,1],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[0,0,1,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q4,r=Qlearning(Qtable,[0,1,0,0],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[0,1,0,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q5,r=Qlearning(Qtable,[0,1,0,1],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[0,1,0,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q6,r=Qlearning(Qtable,[0,1,1,0],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[0,1,1,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q7,r=Qlearning(Qtable,[0,1,1,1],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[0,1,1,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q8,r=Qlearning(Qtable,[1,0,0,0],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[1,0,0,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q9,r=Qlearning(Qtable,[1,0,0,1],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[1,0,0,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q10,r=Qlearning(Qtable,[1,0,1,0],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[1,0,1,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q11,r=Qlearning(Qtable,[1,0,1,1],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[1,0,1,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q12,r=Qlearning(Qtable,[1,1,0,0],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[1,1,0,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q13,r=Qlearning(Qtable,[1,1,0,1],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[1,1,0,1]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q14,r=Qlearning(Qtable,[1,1,1,0],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[1,1,1,0]QBitQlTraining.txt','w'))
+Qtable=qtableu()
+Q15,r=Qlearning(Qtable,[1,1,1,1],True,qp=True,fourbit=True)
+print(r,file=open('randomFour[1,1,1,1]QBitQlTraining.txt','w'))
+r=fourbitsimulation(Q,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,Q11,Q12,Q13,Q14,Q15,True)
+print(r,file=open('randomFourMULTIQBitqlTesting.txt','w'))
