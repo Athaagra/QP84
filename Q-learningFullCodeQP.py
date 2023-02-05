@@ -71,7 +71,7 @@ class Qprotocol:
              self.data0=np.random.randint(0,2,inp)
              self.data1 = np.random.randint(0,2,inp)
              self.data2 = np.random.randint(0,2,inp)
-         if Qb==False:
+         if Qb==True:
              self.data0=encode(self.data1,len(self.data1))
          #print(self.data0)
              self.data2=decode(self.data0,len(self.data0))
