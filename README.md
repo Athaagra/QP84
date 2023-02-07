@@ -10,7 +10,7 @@ Quantum channel dqn:1bit:0.44 2bit:0.18 3bit:0.08 4bit:0.09</p>
 
 
 <h2>Multiagent Environment</h2>
-<p>Classical channel ql:1bit:- 2bit:- 3bit:- 4bit:-
-Quantum channel ql:1bit:- 2bit:- 3bit:- 4bit:- </p>
+<p>Classical channel ql:1bit:1.0 2bit:0.72 3bit:0.27 4bit:0.05
+Quantum channel ql:1bit:1.0 2bit:0.80 3bit:0.36 4bit:0.19 </p>
 <p>Classical channel dqn:1bit:0.74 2bit:0.85 3bit:0.33 4bit:0.16
 Quantum channel dqn: 1bit:1.00 2bit:0.73 3bit:0.38 4bit:0.12</p>
