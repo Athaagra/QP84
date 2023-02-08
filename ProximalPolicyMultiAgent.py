@@ -18,23 +18,34 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 import scipy.signal 
+import sys
+
+#temp = sys.stdout                 # store original stdout object for later
+#sys.stdout = open('log.txt', 'w')
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jan 20 20:46:53 2023
+
+@author: Optimus
+"""
 """
 The environment for Level1
-Actions for Alice:
-0 - Idle
-1 - Read next bit from data1, store in datalog
-2 - Place datalog in Bob's mailbox
-Actions for Bob:
-0 - Idle
-1 - Read next bit from mailbox
-2 - Write 0 to key
-3 - Write 1 to key
-Actions are input to the environment as tuples
-e.g. (1,0) means Alice takes action 1 and Bob takes action 0
-Rewards accumulate: negative points for wrong guess, 
-positive points for correct guess
-Game terminates with correct key or N moves
-"""
+# Actions for Alice:
+# 0 - Idle
+# 1 - Read next bit from data1, store in datalog
+# 2 - Place datalog in Bob's mailbox
+# Actions for Bob:
+# 0 - Idle
+# 1 - Read next bit from mailbox
+# 2 - Write 0 to key
+# 3 - Write 1 to key
+# Actions are input to the environment as tuples
+# e.g. (1,0) means Alice takes action 1 and Bob takes action 0
+# Rewards accumulate: negative points for wrong guess, positive points for correct guess
+# Game terminates with correct key or N moves
+# """
+import numpy as np
 class Qprotocol:
      def encoded(data0,q):
          chars="XZ"
@@ -74,11 +85,23 @@ class Qprotocol:
              if data1[i]=="-" and recieverFilter[i]=="Z":
                  data2.append(np.random.randint(0,2,1)[0])
          return np.array(data2)
-     def __init__(self,maxm):
+     def __init__(self,maxm,inp,encode=encoded,decode=decoded,Qb=False,MultiAgent=False):
          self.max_moves = maxm
-         self.data0=np.random.randint(0,2,1)
-         self.data1 = np.random.randint(0,2,1)
-         self.data2 = np.random.randint(0,2,1)
+         if MultiAgent==True:
+             self.data1=inp
+             self.data0=np.random.randint(0,2,len(inp))
+             self.data2 = np.random.randint(0,2,len(inp))
+         else:
+             self.data0=np.random.randint(0,2,inp)
+             self.data1 = np.random.randint(0,2,inp)
+             self.data2 = np.random.randint(0,2,inp)
+         if Qb==True:
+             self.data0=encode(self.data1,len(self.data1))
+         #print(self.data0)
+             self.data2=decode(self.data0,len(self.data0))
+         ####Classical Channel
+         else:
+             self.data2=self.data1
          # State for alice
          #self.data1 = np.random.randint(0,2,2)
          #self.data2 = np.random.randint(0,2,2)
@@ -100,14 +123,13 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          self.state_space = (len(state[0]), len(state[1]))
          self.action_space = (3, 4)
-         #self.reset()
+         self.reset(maxm)
      def step(self, action, verbose=0):
          import numpy as np
      # Keep track of action list
          self.action_history.append(action)
          # Reset reward
          reward = 0
-         bk=[0]
          # If we have used 10 actions, game over
          if len(self.action_history) > self.max_moves:
              reward = 0
@@ -121,12 +143,16 @@ class Qprotocol:
          if( action_alice == 1 ):
              if( self.alice_data_counter >= len(self.data1) ):
                  if verbose:
-                     print("Alice tried to read more bits than available")
+                     print('')
+                     #print("Alice tried to read more bits than available")
                  else:
+                     print('This the input message data1 {}'.format(self.data1))
                      self.alice_datalog.append(self.data1[self.alice_data_counter])
+                     print('This is alice datalog:{}'.format(self.alice_datalog))
                      self.alice_data_counter += 1
                  if verbose:
-                     print("Alice added data1 to the datalog ", self.alice_datalog)
+                     print('')
+                     #print("Alice added data1 to the datalog ", self.alice_datalog)
      # Send datalog to Bob's mailbox
          if( action_alice == 2 ):
              self.bob_mailbox = self.alice_datalog
@@ -138,12 +164,14 @@ class Qprotocol:
              if self.bob_mailbox:
                  if( self.bob_data_counter >= len(self.bob_mailbox) ):
                      if verbose:
-                         print("Bob tried to read more bits than available")
+                         print('')
+                         #print("Bob tried to read more bits than available")
                      else:
                          self.bob_datalog[self.bob_data_counter % len(self.bob_datalog)] = self.bob_mailbox[self.bob_data_counter]
                          self.bob_data_counter += 1
          if verbose:
-             print("Bob added to his datalog ", self.bob_datalog)
+             print('')
+             #print("Bob added to his datalog ", self.bob_datalog)
              # Add 0 to key - Bob should decide to take this action based on his datalog
          if( action_bob == 2 ):
              self.bob_key.append(0)
@@ -194,16 +222,14 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          #bk=self.bob_key
          return state, reward, self.done, {'action_history':self.action_history},self.bob_key
-     def reset(self,inputm,maxm,encode=encoded,decode=decoded):
+     def reset(self,maxm):
          import numpy as np
          self.max_moves = maxm
          # State for alice
          #self.data0=np.random.randint(0,2,2)
          #self.data1 = np.random.randint(0,2,2)
-         self.data1=np.array(inputm)
-         self.data0=encode(self.data1,len(self.data1))
-         #print(self.data0)
-         self.data2=decode(self.data0,len(self.data0))
+         #print('this is the bitstring message {} and the target message {}'.format(self.data1,self.data2))
+         #self.data1=self.data1#np.array(np.random.randint(0,2,inputm))
          z=[self.data1[i]==self.data2[i] for i in range(len(self.data1))]
          z=np.array(z)
          if z.all():
@@ -227,7 +253,7 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          self.state_space = (len(state[0]), len(state[1]))
          self.action_space = (3, 4)
-         return state
+         return state,self.data1
      def render(self):
          print("---Alice---")
          print("- Datalog: ", self.alice_datalog)
@@ -313,7 +339,7 @@ def mlp(x, sizes, activation=tf.tanh, output_activation=None):
 def logprobabilities(logits, a):
     # Compute the log-probabilities of taking actions a by using the logits (i.e. the output of the actor)
     logprobabilities_all = tf.nn.log_softmax(logits)
-    print('This is the logprobabilities all {}'.format(logprobabilities_all))
+    #print('This is the logprobabilities all {}'.format(logprobabilities_all))
     logprobability = tf.reduce_sum(
         tf.one_hot(a, num_actions) * logprobabilities_all, axis=1
     )
@@ -330,57 +356,60 @@ def sample_action(observation,md):
 def train_policy(
     observation_buffer, action_buffer, logprobability_buffer, advantage_buffer,md
 ):
-    print('This is the train policy')
+    
+    #print('This is the train policy')
     with tf.GradientTape() as tape:  # Record operations for automatic differentiation.
         ratio = tf.exp(
             #(observation_buffer)
             logprobabilities(md(observation_buffer), action_buffer)
             - logprobability_buffer
         )
-        print('This is the ratio {} advantage buffer'.format(ratio))
+        #print('This is the ratio {} advantage buffer'.format(ratio))
         min_advantage = tf.where(
             advantage_buffer > 0,
             (1 + clip_ratio) * advantage_buffer,
             (1 - clip_ratio) * advantage_buffer,
         )
-        print('This is the min_advantage {} 1+ clip_ratio*advantage_buffer, 1-clip_ratio*advantage_buffer '.format(min_advantage))
-        policy_loss = -tf.reduce_mean(
-            tf.minimum(ratio * advantage_buffer, min_advantage)
-        )
-        print('This is the policy grads {} ratio * advantage buffer , minimum advantage'.format(policy_loss))
+        #print('This is the min_advantage {} 1+ clip_ratio*advantage_buffer, 1-clip_ratio*advantage_buffer '.format(min_advantage))
+        policy_loss = -tf.reduce_mean(tf.minimum(ratio * advantage_buffer, min_advantage))
+        #ld=np.array(policy_loss)
+        #fp = open('NN_for_Dymola.txt', 'w' ,encoding='UTF-8')
+        #tf.print(policy_loss, output_stream=sys.stdout)
+        #tf.io.write_file('Training.txt',policy_loss)
     policy_grads = tape.gradient(policy_loss, md.trainable_variables)
-    print('Policy grads {}'.format(policy_grads))
+    #print('Policy grads {}'.format(policy_grads))
     policy_optimizer.apply_gradients(zip(policy_grads, md.trainable_variables))
-    print('policy optimizer {}'.format(policy_optimizer))
+    #print('policy optimizer {}'.format(policy_optimizer))
     kl = tf.reduce_mean(
         logprobability_buffer
         - logprobabilities(md(observation_buffer), action_buffer)
     )
-    print('This is the kl {} logprobability_buffer - logprobabilities(actor(observation_buffer), action_buffer)'.format(kl))
+    #print('This is the kl {} logprobability_buffer - logprobabilities(actor(observation_buffer), action_buffer)'.format(kl))
     kl = tf.reduce_sum(kl)
-    return kl
+    return kl#,policy_loss
 
 
 # Train the value function by regression on mean-squared error
 @tf.function
 def train_value_function(observation_buffer, return_buffer,cc):
-    print('This is the observation_buffer {} and the return buffer {}'.format(observation_buffer, return_buffer))
+    #print('This is the observation_buffer {} and the return buffer {}'.format(observation_buffer, return_buffer))
     with tf.GradientTape() as tape:  # Record operations for automatic differentiation.
-        print('This is the tape {}'.format(tape))
+        #print('This is the tape {}'.format(tape))
         value_loss = tf.reduce_mean((return_buffer - cc(observation_buffer)) ** 2)
-        print('This is the value loss {} return - critic(observation_buffer)) ** 2'.format(value_loss))
+        #ldd=value_loss
+        #tf.print(value_loss, output_stream=sys.stdout)#print('This is the value loss {}'.format(ldd))
     value_grads = tape.gradient(value_loss, cc.trainable_variables)
-    print('This is the value_grads {} value_loss, critic.trainbable_variables'.format(value_grads))
+    #print('This is the value_grads {} value_loss, critic.trainbable_variables'.format(value_grads))
     value_optimizer.apply_gradients(zip(value_grads, cc.trainable_variables))
-
+    #return value_loss
 
 # Hyperparameters of the PPO algorithm
-gamma = 0.99
+gamma = 0.001
 clip_ratio = 0.01
-policy_learning_rate = 3e-4
-value_function_learning_rate = 1e-3
-train_policy_iterations = 5000
-train_value_iterations = 5000
+policy_learning_rate = 1e-11
+value_function_learning_rate = 1e-11
+train_policy_iterations = 200
+train_value_iterations = 200
 lam = 0.97
 target_kl = 0.01
 hidden_sizes = (16, 16)
@@ -389,19 +418,6 @@ hidden_sizes = (16, 16)
 render = False
 
 # Initialize the environment and get the dimensionality of the
-observation_dimensions = 4
-num_actions = 12
-steps_per_epoch=100
-# Initialize the buffer
-buffer = Buffer(observation_dimensions, steps_per_epoch)
-
-# Initialize the actor and the critic as keras models
-observation_input = keras.Input(shape=(observation_dimensions,), dtype=tf.float32)
-logits = mlp(observation_input, list(hidden_sizes) + [num_actions], tf.tanh, None)
-# Initialize the policy and the value function optimizers
-policy_optimizer = keras.optimizers.Adam(learning_rate=policy_learning_rate)
-value_optimizer = keras.optimizers.Adam(learning_rate=value_function_learning_rate)
-rewards_during_training=[]
 # Initialize the observation, episode return and episode length
 #observation, episode_return, episode_length = env.reset(), 0, 0
 # Iterate over the number of epochs
@@ -435,6 +451,7 @@ def mannwhitney(total_episodes,error):
             resultss.append(['Qlearning p-value the p-value is less than we reject the null hypothesis:',pvalue])
     else:
         print('identical')
+        pvalue=0
     import matplotlib.pyplot as plt
     plt.figure(figsize=(13, 13))
     plt.bar(1,pvalue)
@@ -444,13 +461,11 @@ def mannwhitney(total_episodes,error):
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     return resultss
-def proximalpo(inp,ac,cr):
-    inpu=inp
+def proximalpo(inpu,ac,cr,ma,qp):
     epochs = 100
     steps_ep=[]
     q_value_critic=[]
     action_actor=[]
-    env=Qprotocol(4)
     cum=[]
     total_episodes=[]
     cumre=0
@@ -461,7 +476,8 @@ def proximalpo(inp,ac,cr):
         sum_length = 0
         num_episodes = 0
         done=False
-        state=env.reset(inpu,4)
+        env=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        state,inp=env.reset(4)
         actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
         observation = state[0]
         episode_return=0
@@ -499,7 +515,7 @@ def proximalpo(inp,ac,cr):
                 num_episodes += 1
                 cumre+=reward
                 cum.append(cumre)
-                state=env.reset(inpu,4)
+                state,inp=env.reset(4)
                 observation=np.array(state[0]) 
                 episode_return=0
                 episode_length = 0
@@ -542,17 +558,21 @@ def proximalpo(inp,ac,cr):
             logprobability_buffer,
         ) = buffer.get()    
         # Update the policy and implement early stopping using KL divergence
+        locy=[]
         for _ in range(train_policy_iterations):
             kl = train_policy(
                 observation_buffer, action_buffer, logprobability_buffer, advantage_buffer, ac
             )
+            #locy.append(lc)
             if kl > 1.5 * target_kl:
                 # Early Stopping
                 break
     #    print('This is the kl {}'.format(kl))
         # Update the value function
+        cry=[]
         for _ in range(train_value_iterations):
             train_value_function(observation_buffer, return_buffer,cr)
+
         rewards_during_training.append(sum_return / num_episodes)
         # Print mean return and length for each epoch
         print(
@@ -565,15 +585,23 @@ def proximalpo(inp,ac,cr):
     plt.figure(figsize=(13, 13))
     plt.plot(total_episodes)
     plt.xlabel(f'Number of episodes')
-    plt.ylabel('Average Rewards')
+    plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy:{}'.format(sum(total_episodes)))#.format(solved/episodes))
+    plt.title('The simulation has been solved the environment '+str(inpu)+' Proximal Policy:{}'.format(sum(total_episodes)))#.format(solved/episodes))
+    plt.show()
+    plt.figure(figsize=(13, 13))
+    plt.plot(cum)
+    plt.xlabel(f'Number of episodes')
+    plt.ylabel('Rewards')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.title('The simulation has been solved the environment '+str(inpu)+' Proximal Policy Cumulative:{}'.format(max(cum)))#.format(solved/episodes))
+    plt.savefig('cumulativeppo.png')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Fidelity')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment '+str(inpu)+' Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -582,26 +610,25 @@ def proximalpo(inp,ac,cr):
     plt.xlabel(f'loss of episode')
     plt.ylabel('Q-value')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation and the Q-value of Proximal Policy Evaluation')
+    plt.title('The simulation '+str(inpu)+' and the Q-value of Proximal Policy Evaluation')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(steps_ep)
     plt.xlabel(f'Number of steps of each episode')
     plt.ylabel('Steps')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation and the number of steps of Proximal Policy Evaluation {}'.format(np.mean(steps_ep)))
+    plt.title('The simulation and the number of steps '+str(inpu)+' of Proximal Policy Evaluation {}'.format(np.mean(steps_ep)))
     plt.show()
     save_weights(ac,cr,inpu,4)
     error=env.error_counter
     results=mannwhitney(rewards_during_training,error)
-    results.append(['Reward:'+str(count),'Cumulative:'+str(cum[-1]),'Steps:'+str(np.mean(steps_ep))])
+    results.append(['Reward:'+str(count),'Cumulative:'+str(max(cum)),'Steps:'+str(np.mean(steps_ep))])
     return actor,critic,results
 
-def pposimulation(inp,ac):
+def pposimulation(inpu,ac,ma,qp):
     total_episodes=[]
     solved=0
     episodes=100
-    env=Qprotocol(4)
     steps_epi=[]
     cum_rev=0
     cumulative_reward=[]
@@ -611,9 +638,10 @@ def pposimulation(inp,ac):
     actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
     # run infinitely many episodes
     for i_episode in range(episodes):
+        env=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        state,inp=env.reset(4)
         # reset environment and episode reward
         print('This is input {}'.format(inp))
-        state=env.reset(inp,4)
         ep_reward = 0
         done=False
         observation = state[0]
@@ -675,20 +703,20 @@ def pposimulation(inp,ac):
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment '+str(inpu)+' Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format((cumulative_reward[-1])))
+    plt.title('The simulation has been solved the environment '+str(inpu)+' Proximal Policy Evaluation Cumulative:{}'.format((cumulative_reward[-1])))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Fidelity')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment '+str(inpu)+' Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -703,12 +731,10 @@ def pposimulation(inp,ac):
     results.append(['Reward:'+str(solved/episodes),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 
-def onebitsimulation(inp,ac,ac1):
+def onebitsimulation(inpa,ac,ac1,ma,qp):
     total_episodes=[]
     solved=0
     episodes=100
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
     steps_epi=[]
     cum_rev=0
     cumulative_reward=[]
@@ -719,8 +745,11 @@ def onebitsimulation(inp,ac,ac1):
     # run infinitely many episodes
     for i_episode in range(episodes):
         # reset environment and episode reward
-        state=env.reset(inp,4)
-        state1=env1.reset(inp,4)
+        inpu=np.random.randint(0,2,inpa)
+        env=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env1=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        state,inp=env.reset(4)
+        state1,inp=env1.reset(4)
         ep_reward = 0
         done1=False
         done2=False
@@ -773,20 +802,20 @@ def onebitsimulation(inp,ac,ac1):
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Fidelity')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+'Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -803,14 +832,10 @@ def onebitsimulation(inp,ac,ac1):
     results.append([results1,'Reward:'+str(solved/episodes),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 
-def twobitsimulation(inp,ac,ac1,ac2,ac3):
+def twobitsimulation(inpa,ac,ac1,ac2,ac3,ma,qp):
     total_episodes=[]
     solved=0
     episodes=100
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
-    env2=Qprotocol(4)
-    env3=Qprotocol(4)
     steps_epi=[]
     cum_rev=0
     cumulative_reward=[]
@@ -821,10 +846,15 @@ def twobitsimulation(inp,ac,ac1,ac2,ac3):
     # run infinitely many episodes
     for i_episode in range(episodes):
         # reset environment and episode reward
-        state=env.reset(inp,4)
-        state1=env1.reset(inp,4)
-        state2=env2.reset(inp,4)
-        state3=env3.reset(inp,4)
+        inpu=np.random.randint(0,2,inpa)
+        env=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env1=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env2=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env3=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        state,inp=env.reset(4)
+        state1,inp=env1.reset(4)
+        state2,inp=env2.reset(4)
+        state3,inp=env3.reset(4)
         ep_reward = 0
         done1=False
         done2=False
@@ -897,20 +927,20 @@ def twobitsimulation(inp,ac,ac1,ac2,ac3):
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Cumulative')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Fidelity')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -932,18 +962,10 @@ def twobitsimulation(inp,ac,ac1,ac2,ac3):
     return results
 
 
-def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
+def threebitsimulation(inpa,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ma,qp):
     total_episodes=[]
     solved=0
     episodes=100
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
-    env2=Qprotocol(4)
-    env3=Qprotocol(4)
-    env4=Qprotocol(4)
-    env5=Qprotocol(4)
-    env6=Qprotocol(4)
-    env7=Qprotocol(4)
     steps_epi=[]
     cum_rev=0
     cumulative_reward=[]
@@ -954,14 +976,23 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
     # run infinitely many episodes
     for i_episode in range(episodes):
         # reset environment and episode reward
-        state=env.reset(inp,4)
-        state1=env1.reset(inp,4)
-        state2=env2.reset(inp,4)
-        state3=env3.reset(inp,4)
-        state4=env4.reset(inp,4)
-        state5=env5.reset(inp,4)
-        state6=env6.reset(inp,4)
-        state7=env7.reset(inp,4)
+        inpu=np.random.randint(0,2,inpa)
+        env=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env1=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env2=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env3=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env4=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env5=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env6=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env7=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        state,inp=env.reset(4)
+        state1,inp=env1.reset(4)
+        state2,inp=env2.reset(4)
+        state3,inp=env3.reset(4)
+        state4,inp=env4.reset(4)
+        state5,inp=env5.reset(4)
+        state6,inp=env6.reset(4)
+        state7,inp=env7.reset(4)
         ep_reward = 0
         done1=False
         done2=False
@@ -1075,20 +1106,20 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation Cumulative:{}'.format(np.max(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation fidelity:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -1116,26 +1147,10 @@ def threebitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7):
     results7=mannwhitney(total_episodes,error7)
     results.append([results1,results2,results3,results4,results5,results6,results7,'Reward:'+str(solved/episodes),'Cumulative:'+str(cumulative_reward[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
-def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,ac13,ac14,ac15):
+def fourbitsimulation(inpa,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,ac13,ac14,ac15,ma,qp):
     total_episodes=[]
     solved=0
     episodes=100
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
-    env2=Qprotocol(4)
-    env3=Qprotocol(4)
-    env4=Qprotocol(4)
-    env5=Qprotocol(4)
-    env6=Qprotocol(4)
-    env7=Qprotocol(4)
-    env8=Qprotocol(4)
-    env9=Qprotocol(4)
-    env10=Qprotocol(4)
-    env11=Qprotocol(4)
-    env12=Qprotocol(4)
-    env13=Qprotocol(4)
-    env14=Qprotocol(4)
-    env15=Qprotocol(4)
     steps_epi=[]
     cum_rev=0
     cumulative_reward=[]
@@ -1145,23 +1160,40 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
     actions_list=[(0,0),(0,1),(0,2),(0,3),(1,0),(2,0),(1,1),(1,2),(1,3),(2,1),(2,2),(2,3)]
     # run infinitely many episodes
     for i_episode in range(episodes):
+        inpu=np.random.randint(0,2,inpa)
         # reset environment and episode reward
-        state=env.reset(inp,4)
-        state1=env1.reset(inp,4)
-        state2=env2.reset(inp,4)
-        state3=env3.reset(inp,4)
-        state4=env4.reset(inp,4)
-        state5=env5.reset(inp,4)
-        state6=env6.reset(inp,4)
-        state7=env7.reset(inp,4)
-        state8=env8.reset(inp,4)
-        state9=env9.reset(inp,4)
-        state10=env10.reset(inp,4)
-        state11=env11.reset(inp,4)
-        state12=env12.reset(inp,4)
-        state13=env13.reset(inp,4)
-        state14=env14.reset(inp,4)
-        state15=env15.reset(inp,4)
+        env=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env1=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env2=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env3=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env4=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env5=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env6=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env7=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env8=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env9=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env10=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env11=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env12=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env13=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env14=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        env15=Qprotocol(4,inpu,MultiAgent=ma,Qb=qp)
+        state,inp=env.reset(4)
+        state1,inp=env1.reset(4)
+        state2,inp=env2.reset(4)
+        state3,inp=env3.reset(4)
+        state4,inp=env4.reset(4)
+        state5,inp=env5.reset(4)
+        state6,inp=env6.reset(4)
+        state7,inp=env7.reset(4)
+        state8,inp=env8.reset(4)
+        state9,inp=env9.reset(4)
+        state10,inp=env10.reset(4)
+        state11,inp=env11.reset(4)
+        state12,inp=env12.reset(4)
+        state13,inp=env13.reset(4)
+        state14,inp=env14.reset(4)
+        state15,inp=env15.reset(4)
         ep_reward = 0
         done1=False
         done2=False
@@ -1357,20 +1389,20 @@ def fourbitsimulation(inp,ac,ac1,ac2,ac3,ac4,ac5,ac6,ac7,ac8,ac9,ac10,ac11,ac12,
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation Rewards:{}'.format(solved/episodes))
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(cumulative_reward)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation cumulative:{}'.format(sum(cumulative_reward)))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation cumulative:{}'.format(sum(cumulative_reward)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
     plt.plot(total_fidelity)
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Fidelity')
-    plt.title('The simulation has been solved the environment Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
+    plt.title('The simulation has been solved the environment '+str(len(inpu))+' Proximal Policy Evaluation Fidelity:{}'.format(sum(total_fidelity)))
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
     plt.figure(figsize=(13, 13))
@@ -1541,46 +1573,109 @@ def load_weightsFifteen():
     critic15.load_weights(path+ '_criticOne1111.h5')
     actor15.load_weights(path+ '_actorOne1111.h5')
 #save_weights()
-    
+# =============================================================================
+# Classical Channel     
+# =============================================================================
+observation_dimensions = 4
+num_actions = 12
+steps_per_epoch=15
+# Initialize the buffer
+buffer = Buffer(observation_dimensions, steps_per_epoch)
+
+# Initialize the actor and the critic as keras models
+observation_input = keras.Input(shape=(observation_dimensions,), dtype=tf.float32)
+logits = mlp(observation_input, list(hidden_sizes) + [num_actions], tf.tanh, None)
+# Initialize the policy and the value function optimizers
+policy_optimizer = keras.optimizers.Adam(learning_rate=policy_learning_rate)
+value_optimizer = keras.optimizers.Adam(learning_rate=value_function_learning_rate)
+rewards_during_training=[]
 value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
-
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
-actor,critic,r=proximalpo(np.random.randint(0,2,1),actor,critic)
+actor,critic,r=proximalpo(1,actor,critic,False,False)
 print(r,file=open('randomOneBitPPOTraining.txt','w'))
-r=pposimulation(np.random.randint(0,2,1), actor)
+r=pposimulation(1, actor,False,False)
 print(r,file=open('randomOneBitPPOTesting.txt','w'))
+#value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
-actor,critic,r=proximalpo(np.random.randint(0,2,2),actor,critic)
+actor,critic,r=proximalpo(2,actor,critic,False,False)
+#sys.stdout.close()                # ordinary file object
+#sys.stdout = temp 
 print(r,file=open('randomTwoBitPPOTraining.txt','w'))
-r=pposimulation(np.random.randint(0,2,2), actor)
+r=pposimulation(2, actor,False,False)
 print(r,file=open('randomTwoBitPPOTesting.txt','w'))
+#value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
-actor,critic,r=proximalpo(np.random.randint(0,2,3),actor,critic)
+actor,critic,r=proximalpo(3,actor,critic,False,False)
 print(r,file=open('randomThreeBitPPOTraining.txt','w'))
-r=pposimulation(np.random.randint(0,2,3), actor)
+r=pposimulation(3, actor,False,False)
 print(r,file=open('randomtThreeBitPPOTesting.txt','w'))
+#value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
-actor,critic,r=proximalpo(np.random.randint(0,2,4),actor,critic)
+actor,critic,r=proximalpo(4,actor,critic,False,False)
 print(r,file=open('randomFourBitPPOraining.txt','w'))
-r=pposimulation(np.random.randint(0,2,4), actor)
+r=pposimulation(4, actor,False,False)
 print(r,file=open('randomFourBitPPOTesting.txt','w'))
-
+# =============================================================================
+# Quantum Channel     
+# =============================================================================
+#value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
+actor,critic,r=proximalpo(1,actor,critic,False,True)
+print(r,file=open('randomOneQBitPPOTraining.txt','w'))
+r=pposimulation(1, actor,False,True)
+print(r,file=open('randomOneQBitPPOTesting.txt','w'))
+#value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
+actor = keras.Model(inputs=observation_input, outputs=logits)
+critic = keras.Model(inputs=observation_input, outputs=value)
+actor,critic,r=proximalpo(2,actor,critic,False,True)
+#sys.stdout.close()                # ordinary file object
+#sys.stdout = temp 
+print(r,file=open('randomTwoQBitPPOTraining.txt','w'))
+r=pposimulation(2, actor,False,True)
+print(r,file=open('randomTwoQBitPPOTesting.txt','w'))
+#value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
+actor = keras.Model(inputs=observation_input, outputs=logits)
+critic = keras.Model(inputs=observation_input, outputs=value)
+actor,critic,r=proximalpo(3,actor,critic,False,True)
+print(r,file=open('randomThreeQBitPPOTraining.txt','w'))
+r=pposimulation(3, actor,False,True)
+print(r,file=open('randomtThreeQBitPPOTesting.txt','w'))
+#value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
+actor = keras.Model(inputs=observation_input, outputs=logits)
+critic = keras.Model(inputs=observation_input, outputs=value)
+actor,critic,r=proximalpo(4,actor,critic,False,True)
+print(r,file=open('randomFourQBitPPOraining.txt','w'))
+r=pposimulation(4, actor,False,True)
+print(r,file=open('randomFourQBitPPOTesting.txt','w'))
+
+
+
+
+
+
+
+
+
+
+value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
+actor = keras.Model(inputs=observation_input, outputs=logits)
+critic = keras.Model(inputs=observation_input, outputs=value)
+value = tf.squeeze(mlp(observation_input, list(hidden_sizes) + [1], tf.tanh, None), axis=1)
 actor1 = keras.Model(inputs=observation_input, outputs=logits)
 critic1 = keras.Model(inputs=observation_input, outputs=value)
-actor,critic,r=proximalpo([0],actor,critic)
-print(r,file=open('randomOneBit[0]PPOTraining.txt','w'))
-actor1,criti1c,r=proximalpo([1],actor1,critic1)
-print(r,file=open('randomOneBit[1]PPOTraining.txt','w'))
+actor,critic,r=proximalpo([0],actor,critic,True,True)
+print(r,file=open('randomOneQBit[0]PPOTraining.txt','w'))
+actor1,critic1,r=proximalpo([1],actor1,critic1,True,True)
+print(r,file=open('randomOneQBit[1]PPOTraining.txt','w'))
 #load_weightsOne()
 #load_weightsTwo()
-r=onebitsimulation(np.random.randint(0,2,1),actor,actor1)
-print(r,file=open('randomOneBitMULTIPPOTesting.txt','w'))
+r=onebitsimulation(1,actor,actor1,True,True)
+print(r,file=open('randomOneQBitMULTIPPOTestings.txt','w'))
 
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
@@ -1591,20 +1686,20 @@ critic2 = keras.Model(inputs=observation_input, outputs=value)
 actor3 = keras.Model(inputs=observation_input, outputs=logits)
 critic3 = keras.Model(inputs=observation_input, outputs=value)
 
-actor,critic,r=proximalpo([0,0],actor,critic)
-print(r,file=open('randomTwoBit[0,0]PPOTraining.txt','w'))
-actor1,critic1,r=proximalpo([0,1],actor1,critic1)
-print(r,file=open('randomTwoBit[0,1]PPOTraining.txt','w'))
-actor2,critic2,r=proximalpo([1,0],actor2,critic2)
-print(r,file=open('randomTwoBit[1,0]PPOTraining.txt','w'))
-actor3,critic3,r=proximalpo([1,1],actor3,critic3)
-print(r,file=open('randomTwoBit[1,1]PPOTraining.txt','w'))
+actor,critic,r=proximalpo([0,0],actor,critic,True,False)
+print(r,file=open('randomTwoQBit[0,0]PPOTraining.txt','w'))
+actor1,critic1,r=proximalpo([0,1],actor1,critic1,True,False)
+print(r,file=open('randomTwoQBit[0,1]PPOTraining.txt','w'))
+actor2,critic2,r=proximalpo([1,0],actor2,critic2,True,False)
+print(r,file=open('randomTwoQBit[1,0]PPOTraining.txt','w'))
+actor3,critic3,r=proximalpo([1,1],actor3,critic3,True,False)
+print(r,file=open('randomTwoQBit[1,1]PPOTraining.txt','w'))
 #load_weightsOne()
 #load_weightsTwo()
 #load_weightsThree()
 #load_weightsFour()
-r=twobitsimulation(np.random.randint(0,2,2),actor,actor1,actor2,actor3)
-print(r,file=open('randomTwoBitMULTIPPOTesting.txt','w'))
+r=twobitsimulation(2,actor,actor1,actor2,actor3,True,False)
+print(r,file=open('randomTwoQBitMULTIPPOTesting.txt','w'))
 
 actor = keras.Model(inputs=observation_input, outputs=logits)
 critic = keras.Model(inputs=observation_input, outputs=value)
@@ -1623,22 +1718,22 @@ critic6 = keras.Model(inputs=observation_input, outputs=value)
 actor7 = keras.Model(inputs=observation_input, outputs=logits)
 critic7 = keras.Model(inputs=observation_input, outputs=value)
 
-actor,critic,r=proximalpo([0,0,0],actor,critic)
-print(r,file=open('randomThreeBit[0,0,0]PPOTraining.txt','w'))
-actor1,critic1,r=proximalpo([0,0,1],actor1,critic1)
-print(r,file=open('randomThreeBit[0,0,1]PPOTraining.txt','w'))
-actor2,critic2,r=proximalpo([0,1,0],actor2,critic2)
-print(r,file=open('randomThreeBit[0,1,0]PPOTraining.txt','w'))
-actor3,critic3,r=proximalpo([0,1,1],actor3,critic3)
-print(r,file=open('randomThreeBit[0,1,1]PPOTraining.txt','w'))
-actor4,critic4,r=proximalpo([1,0,0],actor4,critic4)
-print(r,file=open('randomThreeBit[1,0,0]PPOTraining.txt','w'))
-actor5,critic5,r=proximalpo([1,0,1],actor5,critic5)
-print(r,file=open('randomThreeBit[1,0,1]PPOTraining.txt','w'))
-actor6,critic6,r=proximalpo([1,1,0],actor6,critic6)
-print(r,file=open('randomThreeBit[1,1,0]PPOTraining.txt','w'))
-actor7,critic7,r=proximalpo([1,1,1],actor7,critic7)
-print(r,file=open('randomThreeBit[1,1,1]PPOTraining.txt','w'))
+actor,critic,r=proximalpo([0,0,0],actor,critic,True,False)
+print(r,file=open('randomThreeQBit[0,0,0]PPOTraining.txt','w'))
+actor1,critic1,r=proximalpo([0,0,1],actor1,critic1,True,False)
+print(r,file=open('randomThreeQBit[0,0,1]PPOTraining.txt','w'))
+actor2,critic2,r=proximalpo([0,1,0],actor2,critic2,True,False)
+print(r,file=open('randomThreeQBit[0,1,0]PPOTraining.txt','w'))
+actor3,critic3,r=proximalpo([0,1,1],actor3,critic3,True,False)
+print(r,file=open('randomThreeQBit[0,1,1]PPOTraining.txt','w'))
+actor4,critic4,r=proximalpo([1,0,0],actor4,critic4,True,False)
+print(r,file=open('randomThreeQBit[1,0,0]PPOTraining.txt','w'))
+actor5,critic5,r=proximalpo([1,0,1],actor5,critic5,True,False)
+print(r,file=open('randomThreeQBit[1,0,1]PPOTraining.txt','w'))
+actor6,critic6,r=proximalpo([1,1,0],actor6,critic6,True,False)
+print(r,file=open('randomThreeQBit[1,1,0]PPOTraining.txt','w'))
+actor7,critic7,r=proximalpo([1,1,1],actor7,critic7,True,False)
+print(r,file=open('randomThreeQBit[1,1,1]PPOTraining.txt','w'))
 #load_weightsOne()
 #load_weightsTwo()
 #load_weightsThree()
@@ -1647,8 +1742,8 @@ print(r,file=open('randomThreeBit[1,1,1]PPOTraining.txt','w'))
 #load_weightsSix()
 #load_weightsSeven()
 #load_weightsEight()
-r=threebitsimulation(np.random.randint(0,2,3),actor,actor1,actor2,actor3,actor4,actor5,actor6,actor7)
-print(r,file=open('randomThreeBitMULTIPPOTesting.txt','w'))
+r=threebitsimulation(3,actor,actor1,actor2,actor3,actor4,actor5,actor6,actor7,True,False)
+print(r,file=open('randomThreeQBitMULTIPPOTesting.txt','w'))
 
 
 actor = keras.Model(inputs=observation_input, outputs=logits)
@@ -1683,37 +1778,37 @@ actor14 = keras.Model(inputs=observation_input, outputs=logits)
 critic14 = keras.Model(inputs=observation_input, outputs=value)
 actor15 = keras.Model(inputs=observation_input, outputs=logits)
 critic15 = keras.Model(inputs=observation_input, outputs=value)
-actor,critic,r=proximalpo([0,0,0,0],actor,critic)
+actor,critic,r=proximalpo([0,0,0,0],actor,critic,True,False)
 print(r,file=open('randomFourBit[0,0,0,0]PPOTraining.txt','w'))
-actor1,critic1,r=proximalpo([0,0,0,1],actor1,critic1)
+actor1,critic1,r=proximalpo([0,0,0,1],actor1,critic1,True,False)
 print(r,file=open('randomFourBit[0,0,0,1]PPOTraining.txt','w'))
-actor2,critic2,r=proximalpo([0,0,1,0],actor2,critic2)
+actor2,critic2,r=proximalpo([0,0,1,0],actor2,critic2,True,False)
 print(r,file=open('randomFourBit[0,0,1,0]PPOTraining.txt','w'))
-actor3,critic3,r=proximalpo([0,0,1,1],actor3,critic3)
+actor3,critic3,r=proximalpo([0,0,1,1],actor3,critic3,True,False)
 print(r,file=open('randomFourBit[0,0,1,1]PPOTraining.txt','w'))
-actor4,critic4,r=proximalpo([0,1,0,0],actor4,critic4)
+actor4,critic4,r=proximalpo([0,1,0,0],actor4,critic4,True,False)
 print(r,file=open('randomFourBit[0,1,0,0]PPOTraining.txt','w'))
-actor5,critic5,r=proximalpo([0,1,0,1],actor5,critic5)
+actor5,critic5,r=proximalpo([0,1,0,1],actor5,critic5,True,False)
 print(r,file=open('randomFourBit[0,1,0,1]PPOTraining.txt','w'))
-actor6,critic6,r=proximalpo([0,1,1,0],actor6,critic6)
+actor6,critic6,r=proximalpo([0,1,1,0],actor6,critic6,True,False)
 print(r,file=open('randomFourBit[0,1,1,0]PPOTraining.txt','w'))
-actor7,critic7,r=proximalpo([0,1,1,1],actor7,critic7)
+actor7,critic7,r=proximalpo([0,1,1,1],actor7,critic7,True,False)
 print(r,file=open('randomFourBit[0,1,1,1]PPOTraining.txt','w'))
-actor8,critic8,r=proximalpo([1,0,0,0],actor8,critic8)
+actor8,critic8,r=proximalpo([1,0,0,0],actor8,critic8,True,False)
 print(r,file=open('randomFourBit[1,0,0,0]PPOTraining.txt','w'))
-actor9,critic9,r=proximalpo([1,0,0,1],actor9,critic9)
+actor9,critic9,r=proximalpo([1,0,0,1],actor9,critic9,True,False)
 print(r,file=open('randomFourBit[1,0,0,1]PPOTraining.txt','w'))
-actor10,critic10,r=proximalpo([1,0,1,0],actor10,critic10)
+actor10,critic10,r=proximalpo([1,0,1,0],actor10,critic10,True,False)
 print(r,file=open('randomFourBit[1,0,1,0]PPOTraining.txt','w'))
-actor11,critic11,r=proximalpo([1,0,1,1],actor11,critic11)
+actor11,critic11,r=proximalpo([1,0,1,1],actor11,critic11,True,False)
 print(r,file=open('randomFourBit[1,0,1,1]PPOTraining.txt','w'))
-actor12,critic12,r=proximalpo([1,1,0,0],actor12,critic12)
+actor12,critic12,r=proximalpo([1,1,0,0],actor12,critic12,True,False)
 print(r,file=open('randomFourBit[1,1,0,0]PPOTraining.txt','w'))
-actor13,critic13,r=proximalpo([1,1,0,1],actor13,critic13)
+actor13,critic13,r=proximalpo([1,1,0,1],actor13,critic13,True,False)
 print(r,file=open('randomFourBit[1,1,0,1]PPOTraining.txt','w'))
-actor14,critic14,r=proximalpo([1,1,1,0],actor14,critic14)
+actor14,critic14,r=proximalpo([1,1,1,0],actor14,critic14,True,False)
 print(r,file=open('randomFourBit[1,1,1,0]PPOTraining.txt','w'))
-actor15,critic15,r=proximalpo([1,1,1,1],actor15,critic15)
+actor15,critic15,r=proximalpo([1,1,1,1],actor15,critic15,True,False)
 print(r,file=open('randomFourBit[1,1,1,1]PPOTraining.txt','w'))
 #load_weightsOne()
 #load_weightsTwo()
@@ -1729,5 +1824,5 @@ print(r,file=open('randomFourBit[1,1,1,1]PPOTraining.txt','w'))
 #load_weightsThirteen()
 #load_weightsFourteen()
 #load_weightsFifteen()
-r=fourbitsimulation(np.random.randint(0,2,4),actor,actor1,actor2,actor3,actor4,actor5,actor6,actor7,actor8,actor9,actor10,actor11,actor12,actor13,actor14,actor15)
+r=fourbitsimulation(4,actor,actor1,actor2,actor3,actor4,actor5,actor6,actor7,actor8,actor9,actor10,actor11,actor12,actor13,actor14,actor15,True,False)
 print(r,file=open('randomFourBitMULTIPPOTesting.txt','w'))
