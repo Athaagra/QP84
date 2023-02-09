@@ -516,7 +516,7 @@ def reward_function(params,envprotocol):
     while not done:
         actiona = model.sample_action(state)
         action=np.array(actions_list[actiona])
-        new_state, reward, done,info ,bob_key=envprotocol.step(action)
+        new_state, reward, done,info,bob_key=envprotocol.step(action)
         obs=new_state[0]
         episode_reward += reward
         episode_length +=1
@@ -563,10 +563,10 @@ def simulationev(inpa,bp,qp,ma):
     cumre=0
     for _ in range(episodes):
         env=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
-        Rew, ac,steps,bobk,d,inp=reward_function(bp,env)
+        Rew,ac,steps,bobk,d,inp=reward_function(bp,env)
         bk=bobk
         inputm=inp
-        print(bobk,steps,Rew)
+        print(inp,bobk,bk,steps,Rew)
         steps_ep.append(steps)
         if len(inp)==1 and len(bk)==len(inp):
             tp=LogicalStates[:,inputm].T*LogicalStates[bk,:]
@@ -671,7 +671,7 @@ def simulationev(inpa,bp,qp,ma):
     return results
 
 
-def onebitsimulation(inpa,bp,bp1,qp,ma):
+def onebitsimulation(inpn,bp,bp1,qp,ma):
     total_fidelity=[]
     solved=0
     episodes=100
@@ -682,8 +682,9 @@ def onebitsimulation(inpa,bp,bp1,qp,ma):
     steps_epi=[]
     cumre=0
     for _ in range(episodes):
-        env=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
-        env1=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        inpa=np.random.randint(0,2,inpn)
+        env=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env1=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
         Rew,ac,steps,bobk,d,inp=reward_function(bp,env)
         Rew1,ac1,steps1,bobk1,d1,inp=reward_function(bp1,env1)
         if Rew==1:
@@ -720,7 +721,7 @@ def onebitsimulation(inpa,bp,bp1,qp,ma):
     x=np.arange(0,len(steps_ep))
     #steps=np.repeat(steps_ep,len(x))
     plt.plot(x,steps_ep)
-    plt.title('Number of steps per episode {} {}'.format(np.mean(steps),len(inp)))
+    plt.title('Number of steps per episode {} {}'.format(np.mean(steps_ep),len(inp)))
     plt.xlabel(f'Number of episodes')
     plt.ylabel('Number of steps')
     plt.grid(True,which="both",ls="--",c='gray')
@@ -758,6 +759,7 @@ def twobitsimulation(inpa,bp,bp1,bp2,bp3,qp,ma):
     steps_epi=[]
     cumre=0
     for _ in range(episodes):
+        inpa=np.random.randint(0,2,inpa)
         env=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
         env1=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
         env2=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
@@ -850,6 +852,7 @@ def threebitsimulation(inpa,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,ma,qp):
     steps_epi=[]
     cumre=0
     for _ in range(episodes):
+        inpa=np.random.randint(0,2,inpa)
         env=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
         env1=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
         env2=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
@@ -966,6 +969,7 @@ def fourbitsimulation(inpa,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12
     steps_epi=[]
     cumre=0
     for _ in range(episodes):
+        inpa=np.random.randint(0,2,inpa)
         env=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
         env1=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
         env2=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
@@ -1128,84 +1132,174 @@ def fourbitsimulation(inpa,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12
     results15=mannwhitney(total_ep,error15)
     results.append([results1,results2,results3,results4,results5,results6,results7,results8,results9,results10,results11,results12,results13,results14,results15,'Reward:'+str(solved/episodes),'Cumulative:'+str(cum_re[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
-onebitZ,r=evol_strategy([0])
+onebitZ,r=evol_strategy([0],False,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
 print(r,file=open('randomOneBit[0]EsTraining.txt','w'))
-onebitO,r=evol_strategy([1])
+onebitO,r=evol_strategy([1],False,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
 print(r,file=open('randomOneBit[1]EsTraining.txt','w'))
-r=onebitsimulation(np.random.randint(0,2,1),onebitZ,onebitO)
+r=onebitsimulation(1,onebitZ,onebitO,True,True)
 print(r,file=open('randomtOneBitMLTIEsTesting.txt','w'))
-onebitZZ,r=evol_strategy([0,0])
+
+onebitZ,r=evol_strategy([0],True,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
+print(r,file=open('randomOneQBit[0]EsTraining.txt','w'))
+onebitO,r=evol_strategy([1],True,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
+print(r,file=open('randomOneQBit[1]EsTraining.txt','w'))
+r=onebitsimulation(1,onebitZ,onebitO,True,True)
+print(r,file=open('randomtOneQBitMLTIEsTesting.txt','w'))
+
+
+
+
+
+
+onebitZZ,r=evol_strategy([0,0],False,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
 print(r,file=open('randomTwoBit[0,0]EsTraining.txt','w'))
-onebitOZ,r=evol_strategy([0,1])
+onebitOZ,r=evol_strategy([0,1],False,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
 print(r,file=open('randomTwoBit[0,1]EsTraining.txt','w'))
-onebitZO,r=evol_strategy([1,0])
+onebitZO,r=evol_strategy([1,0],False,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
 print(r,file=open('randomTwoBit[1,0]EsTraining.txt','w'))
-onebitOO,r=evol_strategy([1,1])
+onebitOO,r=evol_strategy([1,1],False,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
 print(r,file=open('randomTwoBit[1,1]EsTraining.txt','w'))
-r=twobitsimulation(np.random.randint(0,2,2),onebitZZ,onebitZO,onebitOZ,onebitOO)
+r=twobitsimulation(2,onebitZZ,onebitZO,onebitOZ,onebitOO,True,True)
 print(r,file=open('randomTwoBitMULTIEsTesting.txt','w'))
-onebitZZZ,r=evol_strategy([0,0,0])
+
+onebitZZ,r=evol_strategy([0,0],True,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
+print(r,file=open('randomTwoQBit[0,0]EsTraining.txt','w'))
+onebitOZ,r=evol_strategy([0,1],True,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
+print(r,file=open('randomTwoQBit[0,1]EsTraining.txt','w'))
+onebitZO,r=evol_strategy([1,0],True,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
+print(r,file=open('randomTwoQBit[1,0]EsTraining.txt','w'))
+onebitOO,r=evol_strategy([1,1],True,True,sigma_parameter=0.99,learning_rate=1,number_of_iterations=100)
+print(r,file=open('randomTwoQBit[1,1]EsTraining.txt','w'))
+r=twobitsimulation(2,onebitZZ,onebitZO,onebitOZ,onebitOO,True,True)
+print(r,file=open('randomTwoQBitMULTIEsTesting.txt','w'))
+
+
+
+
+
+onebitZZZ,r=evol_strategy([0,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomThreeBit[0,0,0]EsTraining.txt','w'))
-onebitZZO,r=evol_strategy([0,0,1])
+onebitZZO,r=evol_strategy([0,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomThreeBit[0,0,1]EsTraining.txt','w'))
-onebitZOZ,r=evol_strategy([0,1,0])
+onebitZOZ,r=evol_strategy([0,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomThreeBit[0,1,0]EsTraining.txt','w'))
-onebitZOO,r=evol_strategy([0,1,1])
+onebitZOO,r=evol_strategy([0,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomThreeBit[0,1,1]EsTraining.txt','w'))
-onebitOZZ,r=evol_strategy([1,0,0])
+onebitOZZ,r=evol_strategy([1,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomThreeBit[1,0,0]EsTraining.txt','w'))
-onebitOZO,r=evol_strategy([1,0,1])
+onebitOZO,r=evol_strategy([1,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomThreeBit[1,0,1]EsTraining.txt','w'))
-onebitOOZ,r=evol_strategy([1,1,0])
+onebitOOZ,r=evol_strategy([1,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomThreeBit[1,1,0]EsTraining.txt','w'))
-onebitOOO,r=evol_strategy([1,1,1])
+onebitOOO,r=evol_strategy([1,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomThreeBit[1,1,1]EsTraining.txt','w'))
-r=threebitsimulation(np.random.randint(0,2,3),onebitZZZ,onebitZZO,onebitZOZ,onebitZOO,onebitOZZ,onebitOZO,onebitOOZ,onebitOOO)
+r=threebitsimulation(3,onebitZZZ,onebitZZO,onebitZOZ,onebitZOO,onebitOZZ,onebitOZO,onebitOOZ,onebitOOO,False,True)
 print(r,file=open('randomThreeBitMULTIEsTesting.txt','w'))
 
+onebitZZZ,r=evol_strategy([0,0,0],True,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomThreeQBit[0,0,0]EsTraining.txt','w'))
+onebitZZO,r=evol_strategy([0,0,1],True,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomThreeQBit[0,0,1]EsTraining.txt','w'))
+onebitZOZ,r=evol_strategy([0,1,0],True,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomThreeQBit[0,1,0]EsTraining.txt','w'))
+onebitZOO,r=evol_strategy([0,1,1],True,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomThreeQBit[0,1,1]EsTraining.txt','w'))
+onebitOZZ,r=evol_strategy([1,0,0],True,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomThreeQBit[1,0,0]EsTraining.txt','w'))
+onebitOZO,r=evol_strategy([1,0,1],True,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomThreeQBit[1,0,1]EsTraining.txt','w'))
+onebitOOZ,r=evol_strategy([1,1,0],True,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomThreeQBit[1,1,0]EsTraining.txt','w'))
+onebitOOO,r=evol_strategy([1,1,1],True,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomThreeQBit[1,1,1]EsTraining.txt','w'))
+r=threebitsimulation(3,onebitZZZ,onebitZZO,onebitZOZ,onebitZOO,onebitOZZ,onebitOZO,onebitOOZ,onebitOOO,False,True)
+print(r,file=open('randomThreeQBitMULTIEsTesting.txt','w'))
+
       
-onebitZZZZ,r=evol_strategy([0,0,0,0])
+onebitZZZZ,r=evol_strategy([0,0,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[0,0,0,0]EsTraining.txt','w'))
-onebitZZZO,r=evol_strategy([0,0,0,1])
+onebitZZZO,r=evol_strategy([0,0,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[0,0,0,1]EsTraining.txt','w'))
-onebitZZOZ,r=evol_strategy([0,0,1,0])
+onebitZZOZ,r=evol_strategy([0,0,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[0,0,1,0]EsTraining.txt','w'))
-onebitZZOO,r=evol_strategy([0,0,1,1])
+onebitZZOO,r=evol_strategy([0,0,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[0,0,1,1]EsTraining.txt','w'))
-onebitZOZZ,r=evol_strategy([0,1,0,0])
+onebitZOZZ,r=evol_strategy([0,1,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[0,1,0,0]EsTraining.txt','w'))
-onebitZOZO,r=evol_strategy([0,1,0,1])
+onebitZOZO,r=evol_strategy([0,1,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[0,1,0,1]EsTraining.txt','w'))
-onebitZOOZ,r=evol_strategy([0,1,1,0])
+onebitZOOZ,r=evol_strategy([0,1,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[0,1,1,0]EsTraining.txt','w'))
-onebitZOOO,r=evol_strategy([0,1,1,1])
+onebitZOOO,r=evol_strategy([0,1,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[0,1,1,1]EsTraining.txt','w'))
-onebitOZZZ,r=evol_strategy([1,0,0,0])
+onebitOZZZ,r=evol_strategy([1,0,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[1,0,0,0]EsTraining.txt','w'))
-onebitOZZO,r=evol_strategy([1,0,0,1])
+onebitOZZO,r=evol_strategy([1,0,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[1,0,0,1]EsTraining.txt','w'))
-onebitOZOZ,r=evol_strategy([1,0,1,0])
+onebitOZOZ,r=evol_strategy([1,0,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[1,0,1,0]EsTraining.txt','w'))
-onebitOZOO,r=evol_strategy([1,0,1,1])
+onebitOZOO,r=evol_strategy([1,0,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[1,0,1,1]EsTraining.txt','w'))
-onebitOOZZ,r=evol_strategy([1,1,0,0])
+onebitOOZZ,r=evol_strategy([1,1,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[1,1,0,0]EsTraining.txt','w'))
-onebitOOZO,r=evol_strategy([1,1,0,1])
+onebitOOZO,r=evol_strategy([1,1,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[1,1,0,1]EsTraining.txt','w'))
-onebitOOOZ,r=evol_strategy([1,1,1,0])
+onebitOOOZ,r=evol_strategy([1,1,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[1,1,1,0]EsTraining.txt','w'))
-onebitOOOO,r=evol_strategy([1,1,1,1])
+onebitOOOO,r=evol_strategy([1,1,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBit[1,1,1,1]EsTraining.txt','w'))
-r=fourbitsimulation(np.random.randint(0,2,4),onebitZZZZ,onebitZZZO,onebitZZOZ,onebitZZOO,onebitZOZZ,onebitZOZO,onebitZOOZ,onebitZOOO,onebitOZZZ,onebitOZZO,onebitOZOZ,onebitOZOO,onebitOOZZ,onebitOOZO,onebitOOOZ,onebitOOOO)
+r=fourbitsimulation(4,onebitZZZZ,onebitZZZO,onebitZZOZ,onebitZZOO,onebitZOZZ,onebitZOZO,onebitZOOZ,onebitZOOO,onebitOZZZ,onebitOZZO,onebitOZOZ,onebitOZOO,onebitOOZZ,onebitOOZO,onebitOOOZ,onebitOOOO,False,True)
+
+
+onebitZZZZ,r=evol_strategy([0,0,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[0,0,0,0]EsTraining.txt','w'))
+onebitZZZO,r=evol_strategy([0,0,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[0,0,0,1]EsTraining.txt','w'))
+onebitZZOZ,r=evol_strategy([0,0,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[0,0,1,0]EsTraining.txt','w'))
+onebitZZOO,r=evol_strategy([0,0,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[0,0,1,1]EsTraining.txt','w'))
+onebitZOZZ,r=evol_strategy([0,1,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[0,1,0,0]EsTraining.txt','w'))
+onebitZOZO,r=evol_strategy([0,1,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[0,1,0,1]EsTraining.txt','w'))
+onebitZOOZ,r=evol_strategy([0,1,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[0,1,1,0]EsTraining.txt','w'))
+onebitZOOO,r=evol_strategy([0,1,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[0,1,1,1]EsTraining.txt','w'))
+onebitOZZZ,r=evol_strategy([1,0,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[1,0,0,0]EsTraining.txt','w'))
+onebitOZZO,r=evol_strategy([1,0,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[1,0,0,1]EsTraining.txt','w'))
+onebitOZOZ,r=evol_strategy([1,0,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[1,0,1,0]EsTraining.txt','w'))
+onebitOZOO,r=evol_strategy([1,0,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBit[1,0,1,1]EsTraining.txt','w'))
+onebitOOZZ,r=evol_strategy([1,1,0,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourBit[1,1,0,0]EsTraining.txt','w'))
+onebitOOZO,r=evol_strategy([1,1,0,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourBit[1,1,0,1]EsTraining.txt','w'))
+onebitOOOZ,r=evol_strategy([1,1,1,0],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourBit[1,1,1,0]EsTraining.txt','w'))
+onebitOOOO,r=evol_strategy([1,1,1,1],False,True,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourBit[1,1,1,1]EsTraining.txt','w'))
+r=fourbitsimulation(4,onebitZZZZ,onebitZZZO,onebitZZOZ,onebitZZOO,onebitZOZZ,onebitZOZO,onebitZOOZ,onebitZOOO,onebitOZZZ,onebitOZZO,onebitOZOZ,onebitOZOO,onebitOOZZ,onebitOOZO,onebitOOOZ,onebitOOOO,False,True)
+
+
+
+
+
+
 print(r,file=open('randomFourBitMULTIEsTesting.txt','w'))
-onemodE,r=evol_strategy(1,False,False)
+onemodE,r=evol_strategy(1,False,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomOneBitsEsTraining.txt','w'))
 twomodE,r=evol_strategy(2,False,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomTwoBitsEsTraining.txt','w'))
-threemodE,r=evol_strategy(3,False,False)
+threemodE,r=evol_strategy(3,False,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomThreeBitsEsTraining.txt','w'))
-fourmodE,r=evol_strategy(4,False,False)
+fourmodE,r=evol_strategy(4,False,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
 print(r,file=open('randomFourBitsEsTraining.txt','w'))
+
 r=simulationev(1,onemodE,False,False)
 print(r,file=open('randomOneBitsEsTesting.txt','w'))
 r=simulationev(2,twomodE,False,False)
@@ -1214,3 +1308,24 @@ r=simulationev(3,threemodE,False,False)
 print(r,file=open('randomThreeBitsEsTesting.txt','w'))
 r=simulationev(4,fourmodE,False,False)
 print(r,file=open('randomFourBitsEsTesting.txt','w'))
+
+
+onemodEQ,r=evol_strategy(1,True,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomOneQBitsEsTraining.txt','w'))
+twomodEQ,r=evol_strategy(2,True,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomTwoQBitsEsTraining.txt','w'))
+threemodEQ,r=evol_strategy(3,True,False,sigma_parameter=0.99,learning_rate=1e-1,number_of_iterations=500)
+print(r,file=open('randomThreeQBitsEsTraining.txt','w'))
+fourmodEQ,r=evol_strategy(4,True,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourQBitsEsTraining.txt','w'))
+
+
+r=simulationev(1,onemodEQ,True,False)
+print(r,file=open('randomOneQBitsEsTesting.txt','w'))
+r=simulationev(2,twomodEQ,True,False)
+print(r,file=open('randomTwoQBitsEsTesting.txt','w'))
+r=simulationev(3,threemodEQ,True,False)
+print(r,file=open('randomThreeQBitsEsTesting.txt','w'))
+r=simulationev(4,fourmodEQ,True,False)
+print(r,file=open('randomFourQBitsEsTesting.txt','w'))
+
