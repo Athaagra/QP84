@@ -9,8 +9,8 @@ Quantum channel ql:1bit:0.49 2bit:0.27 3bit:0.08 4bit:0.00</p>
 Quantum channel dqn:1bit:0.44 2bit:0.18 3bit:0.08 4bit:0.09</p>
 <p>Classical channel ppo:1bit:0.5 2bit:0.21 3bit:0.12 4bit:0.05
 Quantum channel ppo:1bit:0.51 2bit:0.25 3bit:0.03 4bit:0.04</p>
-<p>Classical channel es:1bit:0. 2bit:0. 3bit:0. 4bit:0.
-Quantum channel es:1bit:0. 2bit:0. 3bit:0. 4bit:0.</p>
+<p>Classical channel es:1bit:0.42 2bit:0.22 3bit:0.13 4bit:0.10
+Quantum channel es:1bit:0.53 2bit:0.28 3bit:0.09 4bit:0.02</p>
 
 
 <h2>Multiagent Environment</h2>
