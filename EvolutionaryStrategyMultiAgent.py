@@ -1,12 +1,51 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Oct 25 00:35:33 2022
+Created on Mon Jan 23 17:15:59 2023
+
+@author: Optimus
+"""
+
+"""
+Created on Fri Nov 18 00:55:15 2022
 @author: Optimus
 """
 
 import numpy as np
+from itertools import count
 import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+import scipy.signal 
+import sys
+
+#temp = sys.stdout                 # store original stdout object for later
+#sys.stdout = open('log.txt', 'w')
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jan 20 20:46:53 2023
+
+@author: Optimus
+"""
+"""
+The environment for Level1
+# Actions for Alice:
+# 0 - Idle
+# 1 - Read next bit from data1, store in datalog
+# 2 - Place datalog in Bob's mailbox
+# Actions for Bob:
+# 0 - Idle
+# 1 - Read next bit from mailbox
+# 2 - Write 0 to key
+# 3 - Write 1 to key
+# Actions are input to the environment as tuples
+# e.g. (1,0) means Alice takes action 1 and Bob takes action 0
+# Rewards accumulate: negative points for wrong guess, positive points for correct guess
+# Game terminates with correct key or N moves
+# """
+import numpy as np
 class Qprotocol:
      def encoded(data0,q):
          chars="XZ"
@@ -46,11 +85,23 @@ class Qprotocol:
              if data1[i]=="-" and recieverFilter[i]=="Z":
                  data2.append(np.random.randint(0,2,1)[0])
          return np.array(data2)
-     def __init__(self,maxm):
+     def __init__(self,maxm,inp,encode=encoded,decode=decoded,Qb=False,MultiAgent=False):
          self.max_moves = maxm
-         self.data0=np.random.randint(0,2,1)
-         self.data1 = np.random.randint(0,2,1)
-         self.data2 = np.random.randint(0,2,1)
+         if MultiAgent==True:
+             self.data1=inp
+             self.data0=np.random.randint(0,2,len(inp))
+             self.data2 = np.random.randint(0,2,len(inp))
+         else:
+             self.data0=np.random.randint(0,2,inp)
+             self.data1 = np.random.randint(0,2,inp)
+             self.data2 = np.random.randint(0,2,inp)
+         if Qb==True:
+             self.data0=encode(self.data1,len(self.data1))
+         #print(self.data0)
+             self.data2=decode(self.data0,len(self.data0))
+         ####Classical Channel
+         else:
+             self.data2=self.data1
          # State for alice
          #self.data1 = np.random.randint(0,2,2)
          #self.data2 = np.random.randint(0,2,2)
@@ -72,14 +123,13 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          self.state_space = (len(state[0]), len(state[1]))
          self.action_space = (3, 4)
-         #self.reset()
+         self.reset(maxm)
      def step(self, action, verbose=0):
          import numpy as np
      # Keep track of action list
          self.action_history.append(action)
          # Reset reward
          reward = 0
-         bk=[0]
          # If we have used 10 actions, game over
          if len(self.action_history) > self.max_moves:
              reward = 0
@@ -93,12 +143,16 @@ class Qprotocol:
          if( action_alice == 1 ):
              if( self.alice_data_counter >= len(self.data1) ):
                  if verbose:
-                     print("Alice tried to read more bits than available")
+                     print('')
+                     #print("Alice tried to read more bits than available")
                  else:
+                     print('This the input message data1 {}'.format(self.data1))
                      self.alice_datalog.append(self.data1[self.alice_data_counter])
+                     print('This is alice datalog:{}'.format(self.alice_datalog))
                      self.alice_data_counter += 1
                  if verbose:
-                     print("Alice added data1 to the datalog ", self.alice_datalog)
+                     print('')
+                     #print("Alice added data1 to the datalog ", self.alice_datalog)
      # Send datalog to Bob's mailbox
          if( action_alice == 2 ):
              self.bob_mailbox = self.alice_datalog
@@ -110,12 +164,14 @@ class Qprotocol:
              if self.bob_mailbox:
                  if( self.bob_data_counter >= len(self.bob_mailbox) ):
                      if verbose:
-                         print("Bob tried to read more bits than available")
+                         print('')
+                         #print("Bob tried to read more bits than available")
                      else:
                          self.bob_datalog[self.bob_data_counter % len(self.bob_datalog)] = self.bob_mailbox[self.bob_data_counter]
                          self.bob_data_counter += 1
          if verbose:
-             print("Bob added to his datalog ", self.bob_datalog)
+             print('')
+             #print("Bob added to his datalog ", self.bob_datalog)
              # Add 0 to key - Bob should decide to take this action based on his datalog
          if( action_bob == 2 ):
              self.bob_key.append(0)
@@ -166,16 +222,14 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          #bk=self.bob_key
          return state, reward, self.done, {'action_history':self.action_history},self.bob_key
-     def reset(self,maxm,inputm,encode=encoded,decode=decoded):
+     def reset(self,maxm):
          import numpy as np
          self.max_moves = maxm
          # State for alice
          #self.data0=np.random.randint(0,2,2)
          #self.data1 = np.random.randint(0,2,2)
-         self.data1=np.array(inputm)
-         self.data0=encode(self.data1,len(self.data1))
-         #print(self.data0)
-         self.data2=decode(self.data0,len(self.data0))
+         #print('this is the bitstring message {} and the target message {}'.format(self.data1,self.data2))
+         #self.data1=self.data1#np.array(np.random.randint(0,2,inputm))
          z=[self.data1[i]==self.data2[i] for i in range(len(self.data1))]
          z=np.array(z)
          if z.all():
@@ -199,7 +253,7 @@ class Qprotocol:
          state = (self.alice_observation, self.bob_observation)
          self.state_space = (len(state[0]), len(state[1]))
          self.action_space = (3, 4)
-         return state
+         return state,self.data1
      def render(self):
          print("---Alice---")
          print("- Datalog: ", self.alice_datalog)
@@ -242,15 +296,15 @@ def mannwhitney(total_episodes,error):
     else:
         print('identical')
         pvalue=0
-    x=1
-    plt.figure(figsize=(13, 13))
-    print('This is pvalue {}'.format(pvalue))
-    plt.bar(x,pvalue)
-    plt.xlabel(f'Mannwhitney Test')
-    plt.ylabel('Probability')
-    plt.title(str(resultss))#.format(solved/EPISODES))
-    plt.grid(True,which="both",ls="--",c='gray')
-    plt.show()
+    #x=1
+    #plt.figure(figsize=(13, 13))
+    #print('This is pvalue {}'.format(pvalue))
+    #plt.bar(x,pvalue)
+    #plt.xlabel(f'Mannwhitney Test')
+    #plt.ylabel('Probability')
+    #plt.title(str(resultss))#.format(solved/EPISODES))
+    #plt.grid(True,which="both",ls="--",c='gray')
+    #plt.show()
     return resultss
 import numpy as np
 import matplotlib.pyplot as plt
@@ -313,7 +367,7 @@ class ANN:
         self.W2 = params[D * M + M:D*M+M+M*K].reshape(M,K)
         self.b2 = params[-K:]
         
-def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters,inputme):
+def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters,inputme,qp,ma):
     #assume initial params is a 1-D array
     num_params = len(initial_params)
     reward_per_iteration = np.zeros(num_iters)
@@ -321,8 +375,10 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters,i
     sigma_v = np.zeros(num_iters)
     parms = np.zeros(num_iters)
     params = initial_params
-    envprotocol=Qprotocol(4)
+    envprotocol=Qprotocol(4,inputme,Qb=qp,MultiAgent=ma)
     total_fidelity=[]
+    cum_re=[]
+    cumre=0
     for t in range(num_iters):
         t0 = datetime.now()
         N = np.random.randn(population_size, num_params)
@@ -330,17 +386,15 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters,i
         R = np.zeros(population_size)
         acts=np.zeros(population_size)
         total_fidelity=[]
-        cumre=0
-        cum_re=[]
         steps_epi=[]
         total_ep=[]
         solved=0
-        print('This is the number of acts {}'.format(len(acts)))
+        #print('This is the number of acts {}'.format(len(acts)))
         #loop through each "offspring"
         for j in range(population_size):
             params_try = params + sigma * N[j]
-            R[j],acts[j],_,bk,d = f(params_try,inputme,envprotocol)
-            print('This is action {} and Reward {}'.format(acts[j],R[j]))
+            R[j],acts[j],_,bk,d,inputme = f(params_try,envprotocol)
+            #print('This is action {} and Reward {}'.format(acts[j],R[j]))
             if d==True:
                 if len(bk)==len(inputme) and len(inputme)==1:
                     tp=LogicalStates[:,inputme].T*LogicalStates[bk,:]
@@ -351,12 +405,12 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters,i
                         solved+=1
                         cumre+=1
                         total_ep.append(1)
-                        cum_re.append(cumre)
+                        #cum_re.append(cumre)
                     else:
                         cumre+=0
                         solved+=0
                         total_ep.append(0)
-                        cum_re.append(cumre)
+                        #cum_re.append(cumre)
                 if len(bk)==len(inputme) and len(inputme)==2:
                     inpus=''.join(str(x) for x in inputme)
                     bob_keys=''.join(str(x) for x in bk[:len(inputme)])
@@ -367,12 +421,12 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters,i
                         solved+=1
                         cumre+=1
                         total_ep.append(1)
-                        cum_re.append(cumre)
+                        #cum_re.append(cumre)
                     else:
                         cumre+=0
                         solved+=0
                         total_ep.append(0)
-                        cum_re.append(cumre)
+                        #cum_re.append(cumre)
                 if len(bk)==len(inputme) and len(inputme)==3:
                     inpus=''.join(str(x) for x in inputme)
                     bob_keys=''.join(str(x) for x in bk[:len(inputme)])
@@ -383,12 +437,12 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters,i
                         solved+=1
                         cumre+=1
                         total_ep.append(1)
-                        cum_re.append(cumre)
+                        #cum_re.append(cumre)
                     else:
                         cumre+=0
                         solved+=0
                         total_ep.append(0)
-                        cum_re.append(cumre)
+                        #cum_re.append(cumre)
                 if len(bk)==len(inputme) and len(inputme)==4:
                     inpus=''.join(str(x) for x in inputme)
                     bob_keys=''.join(str(x) for x in bk[:len(inputme)])
@@ -399,21 +453,22 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters,i
                         solved+=1
                         cumre+=1
                         total_ep.append(1)
-                        cum_re.append(cumre)
+                        #cum_re.append(cumre)
                     else:
                         cumre+=0
                         solved+=0
                         total_ep.append(0)
-                        cum_re.append(cumre)
+                        #cum_re.append(cumre)
+        cum_re.append(cumre)
         error=envprotocol.error_counter
         resu=mannwhitney(R,error)
-        print(resu)
-        print('This is solved {}'.format(solved))
-        print('This is population size {}'.format(population_size))
+        #print(resu)
+        #print('This is solved {}'.format(solved))
+        #print('This is population size {}'.format(population_size))
         print('This is the cumulative reward {}'.format(cumre))
-        print('this is the number of steps {}'.format(steps_epi))
-        print('this is the number of steps {}'.format(total_fidelity))
-        resu.append(['Reward:'+str(solved/population_size),'Cumulative:'+str(cumre),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
+        #print('this is the number of steps {}'.format(steps_epi))
+        #print('this is the number of steps {}'.format(total_fidelity))
+        #resu.append(['Reward:'+str(solved/population_size),'Cumulative:'+str(cumre),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
         m = R.mean()
         s = R.std()+0.001
         if s == 0:
@@ -428,24 +483,29 @@ def evolution_strategy(f,population_size, sigma, lr, initial_params, num_iters,i
         sigma_v[t]=sigma
         lr *=0.992354
         sigma += 0.7891
-        print("Iter:",t, "Avg Reward: %.3f" % m, "Max:", R.max(), "Duration:",(datetime.now()-t0))
+        #print("Iter:",t, "Avg Reward: %.3f" % m, "Max:", R.max(), "Duration:",(datetime.now()-t0))
         if m > 0.01:# or R.max() >= 1:#m > R.max()/1.5 or R.max() >= 1:
             actis = acts
             print('True')
             #break
         else:
             actis=np.zeros(population_size)
+    plt.figure(figsize=(13, 13))
+    plt.plot(cum_re)
+    plt.xlabel('Number of episode {}'.format(max(cum_re)))
+    plt.ylabel('Rewards')
+    plt.grid(True,which="both",ls="--",c='gray')
+    plt.show()
     return params, reward_per_iteration,actis,learning_rate,sigma_v,population_size,parms,resu
     
-def reward_function(params,inp,envprotocol):
+def reward_function(params,envprotocol):
     model = ANN(D, M, K)
-    inpu=inp
     model.set_params(params)
     episode_reward = 0
     episode_length = 0
     done = False
     counterr=0
-    state_n=envprotocol.reset(4,inpu)
+    state_n,inpu=envprotocol.reset(4)
     obs = state_n[0]
     obs_dim= len(obs)
     if HISTORY_LENGTH >1:
@@ -465,21 +525,23 @@ def reward_function(params,inp,envprotocol):
             state[-obs_dim:]=obs
         else:
             state = obs
-    return episode_reward,actiona,episode_length,bob_key,done
+    return episode_reward,actiona,episode_length,bob_key,done,inpu
 #
-def evol_strategy(mes):     
+def evol_strategy(mes,qp,ma,sigma_parameter=0.002,population_size_parameter=5000,learning_rate=0.006,number_of_iterations=500):     
     model = ANN(D,M,K)
     model.init()
     params = model.get_params()
     message=mes
     best_params, rewards, actions, learn_r,sigmv,pop_s,parms,results = evolution_strategy(
                 f=reward_function,
-                population_size=5,
-                sigma=0.002,
-                lr=0.006,
+                population_size=population_size_parameter,
+                sigma=sigma_parameter,
+                lr=learning_rate,
                 initial_params=params,
-                num_iters=2,
-                inputme=message)
+                num_iters=number_of_iterations,
+                inputme=message,
+                qp=qp,
+                ma=ma,)
     np.savez('es_qkprotocol_results'+str(message)+'.npz',
              learning_rate_v=learn_r,
              sigmav=sigmv,
@@ -490,9 +552,8 @@ def evol_strategy(mes):
              **model.get_params_dict(),)
     return best_params,results
 
-def simulationev(inp,bp):
+def simulationev(inpa,bp,qp,ma):
     total_fidelity=[]
-    env=Qprotocol(4)
     solved=0
     episodes=100
     cum_re=[]
@@ -501,9 +562,11 @@ def simulationev(inp,bp):
     steps_epi=[]
     cumre=0
     for _ in range(episodes):
-        inputm=inp
-        Rew, ac,steps,bobk,d=reward_function(bp,inputm,env)
+        env=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        Rew, ac,steps,bobk,d,inp=reward_function(bp,env)
         bk=bobk
+        inputm=inp
+        print(bobk,steps,Rew)
         steps_ep.append(steps)
         if len(inp)==1 and len(bk)==len(inp):
             tp=LogicalStates[:,inputm].T*LogicalStates[bk,:]
@@ -558,6 +621,8 @@ def simulationev(inp,bp):
             tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bob_keys,:])
             Fidelity=abs(sum(tp))**2
             total_fidelity.append(Fidelity)
+        else:
+            total_fidelity.append(0)
         if Rew==1: 
             solved+=1
             cumre+=1
@@ -570,7 +635,9 @@ def simulationev(inp,bp):
             cum_re.append(cumre)
     plt.figure(figsize=(13, 13))
     plt.plot(cum_re)
-    plt.xlabel(f'Number of Steps of episode')
+    print(cum_re)
+    plt.title('Cumulative Reward {}'.format(max(cum_re)))
+    plt.xlabel(f'Number of episodes')
     plt.ylabel('Rewards')
     plt.grid(True,which="both",ls="--",c='gray')
     plt.show()
@@ -604,27 +671,28 @@ def simulationev(inp,bp):
     return results
 
 
-def onebitsimulation(inp,bp,bp1):
+def onebitsimulation(inpa,bp,bp1,qp,ma):
     total_fidelity=[]
     solved=0
     episodes=100
     Rewa=0
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
     cum_re=[]
     total_ep=[]
     steps_ep=[]
     steps_epi=[]
     cumre=0
     for _ in range(episodes):
-        inputm=inp
-        Rew, ac,steps,bobk,d=reward_function(bp,inputm,env)
-        Rew1, ac1,steps1,bobk1,d1=reward_function(bp1,inputm,env1)
+        env=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env1=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        Rew,ac,steps,bobk,d,inp=reward_function(bp,env)
+        Rew1,ac1,steps1,bobk1,d1,inp=reward_function(bp1,env1)
         if Rew==1:
             bk=bobk
+            inputm=inp
             steps_ep.append(steps)
         if Rew1==1:
             bk=bobk1
+            inputm=inp
             steps_ep.append(steps1)
         if len(inp)==len(bobk) and len(inp)==1 or len(inp)==len(bobk1) and len(inp)==1 and len(bk)!=0:
             tp=LogicalStates[:,inputm].T*LogicalStates[bk,:]
@@ -679,26 +747,25 @@ def onebitsimulation(inp,bp,bp1):
     results.append([results1,'Reward:'+str(solved/episodes),'Cumulative:'+str(cum_re[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
 
-def twobitsimulation(inp,bp,bp1,bp2,bp3):
+def twobitsimulation(inpa,bp,bp1,bp2,bp3,qp,ma):
     total_fidelity=[]
     solved=0
     episodes=100
     Rewa=0
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
-    env2=Qprotocol(4)
-    env3=Qprotocol(4)
     cum_re=[]
     total_ep=[]
     steps_ep=[]
     steps_epi=[]
     cumre=0
     for _ in range(episodes):
-        inputm=inp
-        Rew, ac,steps,bobk,d=reward_function(bp,inputm,env)
-        Rew1, ac1,steps1,bobk1,d1=reward_function(bp1,inputm,env1)
-        Rew2, ac2,steps2,bobk2,d2=reward_function(bp2,inputm,env2)
-        Rew3, ac3,steps3,bobk3,d3=reward_function(bp3,inputm,env3)
+        env=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env1=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env2=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env3=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        Rew, ac,steps,bobk,d,inp=reward_function(bp,env)
+        Rew1, ac1,steps1,bobk1,d1,inp=reward_function(bp1,env1)
+        Rew2, ac2,steps2,bobk2,d2,inp=reward_function(bp2,env2)
+        Rew3, ac3,steps3,bobk3,d3,inp=reward_function(bp3,env3)
         if Rew==1:
             bk=bobk
             steps_ep.append(steps)
@@ -772,18 +839,10 @@ def twobitsimulation(inp,bp,bp1,bp2,bp3):
     results3=mannwhitney(total_ep,error3)
     results.append([results1,results2,results3,'Reward:'+str(solved/episodes),'Cumulative:'+str(cum_re[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
-def threebitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7):
+def threebitsimulation(inpa,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,ma,qp):
     total_fidelity=[]
     solved=0
     episodes=100
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
-    env2=Qprotocol(4)
-    env3=Qprotocol(4)
-    env4=Qprotocol(4)
-    env5=Qprotocol(4)
-    env6=Qprotocol(4)
-    env7=Qprotocol(4)
     Rewa=0
     cum_re=[]
     total_ep=[]
@@ -791,15 +850,22 @@ def threebitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7):
     steps_epi=[]
     cumre=0
     for _ in range(episodes):
-        inputm=inp
-        Rew, ac,steps,bobk,d=reward_function(bp,inputm,env)
-        Rew1, ac1,steps1,bobk1,d1=reward_function(bp1,inputm,env1)
-        Rew2, ac2,steps2,bobk2,d2=reward_function(bp2,inputm,env2)
-        Rew3, ac3,steps3,bobk3,d3=reward_function(bp3,inputm,env3)
-        Rew4, ac4,steps4,bobk4,d4=reward_function(bp4,inputm,env4)
-        Rew5, ac5,steps5,bobk5,d5=reward_function(bp5,inputm,env5)
-        Rew6, ac6,steps6,bobk6,d6=reward_function(bp6,inputm,env6)
-        Rew7, ac7,steps7,bobk7,d7=reward_function(bp7,inputm,env7)
+        env=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env1=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env2=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env3=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env4=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env5=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env6=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        env7=Qprotocol(4,inpa,Qb=qp,Multiagent=ma)
+        Rew, ac,steps,bobk,d,inp=reward_function(bp,env)
+        Rew1, ac1,steps1,bobk1,d1,inp=reward_function(bp1,env1)
+        Rew2, ac2,steps2,bobk2,d2,inp=reward_function(bp2,env2)
+        Rew3, ac3,steps3,bobk3,d3,inp=reward_function(bp3,env3)
+        Rew4, ac4,steps4,bobk4,d4,inp=reward_function(bp4,env4)
+        Rew5, ac5,steps5,bobk5,d5,inp=reward_function(bp5,env5)
+        Rew6, ac6,steps6,bobk6,d6,inp=reward_function(bp6,env6)
+        Rew7, ac7,steps7,bobk7,d7,inp=reward_function(bp7,env7)
         if Rew==1:
             bk=bobk
             steps_ep.append(steps)
@@ -889,7 +955,7 @@ def threebitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7):
     results7=mannwhitney(total_ep,error7)
     results.append([results1,results2,results3,results4,results5,results6,results7,'Reward:'+str(solved/episodes),'Cumulative:'+str(cum_re[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     return results
-def fourbitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12,bp13,bp14,bp15):
+def fourbitsimulation(inpa,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12,bp13,bp14,bp15,qp,ma):
     total_fidelity=[]
     solved=0
     episodes=100
@@ -898,41 +964,40 @@ def fourbitsimulation(inp,bp,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,bp9,bp10,bp11,bp12,
     total_ep=[]
     steps_ep=[]
     steps_epi=[]
-    env=Qprotocol(4)
-    env1=Qprotocol(4)
-    env2=Qprotocol(4)
-    env3=Qprotocol(4)
-    env4=Qprotocol(4)
-    env5=Qprotocol(4)
-    env6=Qprotocol(4)
-    env7=Qprotocol(4)
-    env8=Qprotocol(4)
-    env9=Qprotocol(4)
-    env10=Qprotocol(4)
-    env11=Qprotocol(4)
-    env12=Qprotocol(4)
-    env13=Qprotocol(4)
-    env14=Qprotocol(4)
-    env15=Qprotocol(4)
     cumre=0
     for _ in range(episodes):
-        inputm=inp
-        Rew, ac,steps,bobk,d=reward_function(bp,inputm,env)
-        Rew1, ac1,steps1,bobk1,d1=reward_function(bp1,inputm,env1)
-        Rew2, ac2,steps2,bobk2,d2=reward_function(bp2,inputm,env2)
-        Rew3, ac3,steps3,bobk3,d3=reward_function(bp3,inputm,env3)
-        Rew4, ac4,steps4,bobk4,d4=reward_function(bp4,inputm,env4)
-        Rew5, ac5,steps5,bobk5,d5=reward_function(bp5,inputm,env5)
-        Rew6, ac6,steps6,bobk6,d6=reward_function(bp6,inputm,env6)
-        Rew7, ac7,steps7,bobk7,d7=reward_function(bp7,inputm,env7)
-        Rew8, ac8,steps8,bobk8,d8=reward_function(bp8,inputm,env8)
-        Rew9, ac9,steps9,bobk9,d9=reward_function(bp9,inputm,env9)
-        Rew10,ac10,steps10,bobk10,d10=reward_function(bp10,inputm,env10)
-        Rew11, ac11,steps11,bobk11,d11=reward_function(bp11,inputm,env11)
-        Rew12, ac12,steps12,bobk12,d12=reward_function(bp12,inputm,env12)
-        Rew13, ac13,steps13,bobk13,d13=reward_function(bp13,inputm,env13)
-        Rew14, ac14,steps14,bobk14,d14=reward_function(bp14,inputm,env14)
-        Rew15, ac15,steps15,bobk15,d15=reward_function(bp15,inputm,env15)
+        env=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env1=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env2=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env3=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env4=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env5=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env6=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env7=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env8=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env9=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env10=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env11=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env12=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env13=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env14=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        env15=Qprotocol(4,inpa,Qb=qp,MultiAgent=ma)
+        Rew, ac,steps,bobk,d,inp=reward_function(bp,env)
+        Rew1, ac1,steps1,bobk1,d1,inp=reward_function(bp1,env1)
+        Rew2, ac2,steps2,bobk2,d2,inp=reward_function(bp2,env2)
+        Rew3, ac3,steps3,bobk3,d3,inp=reward_function(bp3,env3)
+        Rew4, ac4,steps4,bobk4,d4,inp=reward_function(bp4,env4)
+        Rew5, ac5,steps5,bobk5,d5,inp=reward_function(bp5,env5)
+        Rew6, ac6,steps6,bobk6,d6,inp=reward_function(bp6,env6)
+        Rew7, ac7,steps7,bobk7,d7,inp=reward_function(bp7,env7)
+        Rew8, ac8,steps8,bobk8,d8,inp=reward_function(bp8,env8)
+        Rew9, ac9,steps9,bobk9,d9,inp=reward_function(bp9,env9)
+        Rew10,ac10,steps10,bobk10,d10,inp=reward_function(bp10,env10)
+        Rew11, ac11,steps11,bobk11,d11,inp=reward_function(bp11,env11)
+        Rew12, ac12,steps12,bobk12,d12,inp=reward_function(bp12,env12)
+        Rew13, ac13,steps13,bobk13,d13,inp=reward_function(bp13,env13)
+        Rew14, ac14,steps14,bobk14,d14,inp=reward_function(bp14,env14)
+        Rew15, ac15,steps15,bobk15,d15,inp=reward_function(bp15,env15)
         if Rew==1:
             bk=bobk
             steps_ep.append(steps)
@@ -1133,19 +1198,19 @@ onebitOOOO,r=evol_strategy([1,1,1,1])
 print(r,file=open('randomFourBit[1,1,1,1]EsTraining.txt','w'))
 r=fourbitsimulation(np.random.randint(0,2,4),onebitZZZZ,onebitZZZO,onebitZZOZ,onebitZZOO,onebitZOZZ,onebitZOZO,onebitZOOZ,onebitZOOO,onebitOZZZ,onebitOZZO,onebitOZOZ,onebitOZOO,onebitOOZZ,onebitOOZO,onebitOOOZ,onebitOOOO)
 print(r,file=open('randomFourBitMULTIEsTesting.txt','w'))
-onemodE,r=evol_strategy(np.random.randint(0,2,1))
-print(r,file=open('randomOneBitsTraining.txt','w'))
-twomodE,r=evol_strategy(np.random.randint(0,2,2))
-print(r,file=open('randomTwoBitsTraining.txt','w'))
-threemodE,r=evol_strategy(np.random.randint(0,2,3))
-print(r,file=open('randomThreeBitsTraining.txt','w'))
-fourmodE,r=evol_strategy(np.random.randint(0,2,4))
-print(r,file=open('randomFourBitsTraining.txt','w'))
-r=simulationev(np.random.randint(0,2,1),onemodE)
-print(r,file=open('randomOneBitsTesting.txt','w'))
-r=simulationev(np.random.randint(0,2,2),twomodE)
-print(r,file=open('randomTwoBitsTesting.txt','w'))
-r=simulationev(np.random.randint(0,2,3),threemodE)
-print(r,file=open('randomThreeBitsTesting.txt','w'))
-r=simulationev(np.random.randint(0,2,4),fourmodE)
-print(r,file=open('randomFourBitsTesting.txt','w'))
+onemodE,r=evol_strategy(1,False,False)
+print(r,file=open('randomOneBitsEsTraining.txt','w'))
+twomodE,r=evol_strategy(2,False,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomTwoBitsEsTraining.txt','w'))
+threemodE,r=evol_strategy(3,False,False)
+print(r,file=open('randomThreeBitsEsTraining.txt','w'))
+fourmodE,r=evol_strategy(4,False,False)
+print(r,file=open('randomFourBitsEsTraining.txt','w'))
+r=simulationev(1,onemodE,False,False)
+print(r,file=open('randomOneBitsEsTesting.txt','w'))
+r=simulationev(2,twomodE,False,False)
+print(r,file=open('randomTwoBitsEsTesting.txt','w'))
+r=simulationev(3,threemodE,False,False)
+print(r,file=open('randomThreeBitsEsTesting.txt','w'))
+r=simulationev(4,fourmodE,False,False)
+print(r,file=open('randomFourBitsEsTesting.txt','w'))
