@@ -135,68 +135,69 @@ class Qprotocol:
              print('This is the data1 {} and encode'.format(self.data1))
              charsEn="X"
              self.data1=list(self.data1)
-             if len(self.data1)==1:
+             if len(self.data1)==1 and type(self.data1[-1])!=str:
                  if self.data1==0:
                      self.data1='+'
                  else:
                      self.data1='-'
-             if len(self.data1)==2:
+             if len(self.data1)==2 and type(self.data1[-1])!=str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]==0:
-                     self.data1='+'
-                 if type(self.data1[typ])!=str and self.data1[typ]==1:
-                     self.data1='-'
-                 else:
+                 while type(self.data1[typ])==str:
                      typ+=1
-             if len(self.data1)==3:
+                     if type(self.data1[typ])!=str and self.data1[typ]==0:
+                         self.data1[typ]='+'
+                     elif type(self.data1[typ])!=str and self.data1[typ]==1:
+                         self.data1[typ]='-'
+                     
+             if len(self.data1)==3 and type(self.data1[-1])!=str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]==0:
-                     self.data1='+'
-                 if type(self.data1[typ])!=str and self.data1[typ]==1:
-                     self.data1='-'
-                 else:
+                 while type(self.data1[typ])==str:
                      typ+=1
-             if len(self.data1)==4:
+                     if type(self.data1[typ])!=str and self.data1[typ]==0:
+                         self.data1[typ]='+'
+                     elif type(self.data1[typ])!=str and self.data1[typ]==1:
+                         self.data1[typ]='-'
+             if len(self.data1)==4 and type(self.data1[-1])!=str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]==0:
-                     self.data1='+'
-                 if type(self.data1[typ])!=str and self.data1[typ]==1:
-                     self.data1='-'
-                 else:
+                 while type(self.data1[typ])==str:
                      typ+=1
+                     if type(self.data1[typ])!=str and self.data1[typ]==0:
+                         self.data1[typ]='+'
+                     elif type(self.data1[typ])!=str and self.data1[typ]==1:
+                        self.data1[typ]='-'
          if( action_alice == 4 ):
              print('This is the data1 {} and encode'.format(self.data1))
              charsEn="Z"
              self.data1=list(self.data1)
-             if len(self.data1)==1:
+             if len(self.data1)==1 and type(self.data1[-1])!=str:
                  if self.data1==0:
                      self.data1='0'
                  else:
                      self.data1='1'
-             if len(self.data1)==2:
+             if len(self.data1)==2 and type(self.data1[-1])!=str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]==0:
-                     self.data1='0'
-                 if type(self.data1[typ])!=str and self.data1[typ]==1:
-                     self.data1='1'
-                 else:
+                 while type(self.data1[typ])==str:
                      typ+=1
-             if len(self.data1)==3:
+                     if type(self.data1[typ])!=str and self.data1[typ]==0:
+                         self.data1[typ]='0'
+                     elif type(self.data1[typ])!=str and self.data1[typ]==1:
+                         self.data1[typ]='1'
+             if len(self.data1)==3 and type(self.data1[-1])!=str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]==0:
-                     self.data1='0'
-                 if type(self.data1[typ])!=str and self.data1[typ]==1:
-                     self.data1='1'
-                 else:
+                 while type(self.data1[typ])==str:
                      typ+=1
-             if len(self.data1)==4:
+                     if type(self.data1[typ])!=str and self.data1[typ]==0:
+                         self.data1[typ]='0'
+                     elif type(self.data1[typ])!=str and self.data1[typ]==1:
+                         self.data1[typ]='1'
+             if len(self.data1)==4 and type(self.data1[-1])!=str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]==0:
-                     self.data1='0'
-                 if type(self.data1[typ])!=str and self.data1[typ]==1:
-                     self.data1='1'
-                 else:
+                 while type(self.data1[typ])==str:
                      typ+=1
+                     if type(self.data1[typ])!=str and self.data1[typ]==0:
+                         self.data1[typ]='0'
+                     elif type(self.data1[typ])!=str and self.data1[typ]==1:
+                         self.data1[typ]='1'
      #------------------------------------------------------------
      # Process actions for bob
      #------------------------------------------------------------
@@ -215,75 +216,75 @@ class Qprotocol:
          if( action_bob == 2 ):
              charsEn="X"
              self.data1=list(self.data1)
-             if len(self.data1)==1:
+             if len(self.data1)==1 and type(self.data1[-1])==str:
                  if self.data1=='-' or self.data1=='1':
                      self.data1=1
                  else:
                      self.data1=0
-             if len(self.data1)==2:
+             if len(self.data1)==2 and type(self.data1[-1])==str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]=='-' or self.data1[typ]=='1':
-                     self.data1[typ]=1
-                 if type(self.data1[typ])!=str and self.data1[typ]=='+' or self.data1[typ]=='0':
-                     self.data1[typ]=0
-                 else:
+                 while type(self.data1[typ])!=int:
                      typ+=1
-             if len(self.data1)==3:
+                     if type(self.data1[typ])==str and self.data1[typ]=='-' or self.data1[typ]=='1':
+                         self.data1[typ]=1
+                     elif type(self.data1[typ])==str and self.data1[typ]=='+' or self.data1[typ]=='0':
+                         self.data1[typ]=0
+             if len(self.data1)==3 and type(self.data1[-1])==str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]=='-' or self.data1[typ]=='1':
-                     self.data1[typ]=1
-                 if type(self.data1[typ])!=str and self.data1[typ]=='+' or self.data1[typ]=='0':
-                     self.data1[typ]=0
-                 else:
+                 while type(self.data1[typ])!=int:
                      typ+=1
-             if len(self.data1)==4:
+                     if type(self.data1[typ])==str and self.data1[typ]=='-' or self.data1[typ]=='1':
+                         self.data1[typ]=1
+                     if type(self.data1[typ])==str and self.data1[typ]=='+' or self.data1[typ]=='0':
+                         self.data1[typ]=0
+             if len(self.data1)==4 and type(self.data1[-1])==str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]=='-' or self.data1[typ]=='1':
-                     self.data1=1
-                 if type(self.data1[typ])!=str and self.data1[typ]=='+' or self.data1[typ]=='0':
-                     self.data1=0
-                 else:
+                 while type(self.data1[typ])!=int:
                      typ+=1
+                     if type(self.data1[typ])==str and self.data1[typ]=='-' or self.data1[typ]=='1':
+                         self.data1[typ]=1
+                     if type(self.data1[typ])==str and self.data1[typ]=='+' or self.data1[typ]=='0':
+                         self.data1[typ]=0
          if( action_bob == 3 ):
              charsEn="Z"
              self.data1=list(self.data1)
-             if len(self.data1)==1:
+             if len(self.data1)==1 and type(self.data1[-1])==str:
                  if self.data1=='1':
                      self.data1=1
                  elif self.data1=='-' or self.data1=='+':
                      self.data1=np.random.randint(0,2,1)[0]
                  else:
                      self.data1=0
-             if len(self.data1)==2:
+             if len(self.data1)==2 and type(self.data1[-1])==str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]=='1':
-                     self.data1[typ]=1
-                 elif type(self.data1[typ])!=str and self.data1[typ]=='0':
-                     self.data1[typ]=0
-                 elif type(self.data1[typ])!=str and self.data1[typ]=='-' or self.data1[typ]=='+':
-                     self.data1[typ]=np.random.randint(0,2,1)[0]
-                 else:
+                 while type(self.data1[typ])!=int:
                      typ+=1
-             if len(self.data1)==3:
+                     if type(self.data1[typ])==str and self.data1[typ]=='1':
+                         self.data1[typ]=1
+                     elif type(self.data1[typ])==str and self.data1[typ]=='0':
+                        self.data1[typ]=0
+                     elif type(self.data1[typ])==str and self.data1[typ]=='-' or self.data1[typ]=='+':
+                        self.data1[typ]=np.random.randint(0,2,1)[0]
+             if len(self.data1)==3 and type(self.data1[-1])==str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]=='1':
-                     self.data1[typ]=1
-                 elif type(self.data1[typ])!=str and self.data1[typ]=='0':
-                     self.data1[typ]=0
-                 elif type(self.data1[typ])!=str and self.data1[typ]=='-' or self.data1[typ]=='+':
-                     self.data1[typ]=np.random.randint(0,2,1)[0]
-                 else:
+                 while type(self.data1[typ])!=int:
                      typ+=1
-             if len(self.data1)==4:
+                     if type(self.data1[typ])==str and self.data1[typ]=='1':
+                         self.data1[typ]=1
+                     elif type(self.data1[typ])==str and self.data1[typ]=='0':
+                        self.data1[typ]=0
+                     elif type(self.data1[typ])==str and self.data1[typ]=='-' or self.data1[typ]=='+':
+                        self.data1[typ]=np.random.randint(0,2,1)[0]
+             if len(self.data1)==4 and type(self.data1[-1])==str:
                  typ=0
-                 if type(self.data1[typ])!=str and self.data1[typ]=='1':
-                     self.data1[typ]=1
-                 elif type(self.data1[typ])!=str and self.data1[typ]=='0':
-                     self.data1[typ]=0
-                 elif type(self.data1[typ])!=str and self.data1[typ]=='-' or self.data1[typ]=='+':
-                     self.data1[typ]=np.random.randint(0,2,1)[0]
-                 else:
+                 while type(self.data1[typ])!=int:
                      typ+=1
+                     if type(self.data1[typ])==str and self.data1[typ]=='1':
+                         self.data1[typ]=1
+                     elif type(self.data1[typ])==str and self.data1[typ]=='0':
+                         self.data1[typ]=0
+                     elif type(self.data1[typ])==str and self.data1[typ]=='-' or self.data1[typ]=='+':
+                         self.data1[typ]=np.random.randint(0,2,1)[0]
          if( action_bob == 4 ):
              self.bob_key.append(0)
              #self.bob_key=np.hstack((self.bob_key,0))
@@ -647,6 +648,7 @@ def Qlearning(Qtable,inp,ma=False,qp=False,onebit=False,twobit=False,threebit=Fa
                     tp=np.array(LogicalStates4bit.loc[:,inpus]).T*np.array(LogicalStates4bit.loc[bob_keys,:])
                     Fidelity=abs(sum(tp))**2
             else:
+                inpus=str(inpu)
                 Fidelity=0
             if reward_episode[-1]==1:
                 solved+=1
