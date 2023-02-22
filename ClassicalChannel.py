@@ -22,7 +22,7 @@ The environment for Level1
 # """
 import numpy as np
 class Qprotocol:
-     def __init__(self,maxm,inp,encode=encoded,decode=decoded,Qb=False,MultiAgent=False):
+     def __init__(self,maxm,inp,MultiAgent=False):
          self.max_moves = maxm
          if MultiAgent==True:
              self.data1=inp
