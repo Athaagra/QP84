@@ -24,6 +24,7 @@ Quantum channel ppo:1bit:0.61 2bit:0.59 3bit:0.43 4bit:0.23</p>
 Quantum channel es: 1bit:1.0 2bit:0.84 3bit:0.35 4bit:0.05</p>
 
 <h2>Quantum Free Number of Actions</h2>
+
 |      	|                              	| Reward 	| Steps 	|
 |------	|------------------------------	|--------	|-------	|
 | 1bit 	| Q learning                   	| 0.54   	| 1.0   	|
