@@ -24,21 +24,21 @@ Quantum channel ppo:1bit:0.61 2bit:0.59 3bit:0.43 4bit:0.23</p>
 Quantum channel es: 1bit:1.0 2bit:0.84 3bit:0.35 4bit:0.05</p>
 
 <h2>Quantum Free Number of Actions</h2>
-|      |                              | Reward | Steps |
-|------|------------------------------|--------|-------|
-| 1bit | Q learning                   | 0.54   | 1.0   |
-|      | Deep q-learning              | 0.57   | 5.0   |
-|      | Proximal policy Optimization | 0.46   | 6.09  |
-|      | Evolutionary Strategy        | 0.58   | 4.36  |
-| 2bit | Q-learning                   | 0.48   | 1.0   |
-|      | Deep q-learning              | 0.55   | 5.0   |
-|      | Proximal policy Optimization | 0.46   | 6.09  |
-|      | Evolutionary Strategy        | 0.54   | 4.68  |
-| 3bit | Q-learning                   | 0.4    | 4.61  |
-|      | Deep q-learning              | 0.48   | 6.0   |
-|      | Proximal policy Optimization | 0.49   | 5.76  |
-|      | Evolutionary Strategy        | 0.52   | 4.84  |
-| 4bit | Q-learning                   | 0.5    | 1.0   |
-|      | Deep q-learning              | 0.47   | 5.0   |
-|      | Proximal Policy Optimization | 0.59   | 5.17  |
-|      | Evolutionary Strategy        | 0.46   | 5.32  |
+|      	|                              	| Reward 	| Steps 	|
+|------	|------------------------------	|--------	|-------	|
+| 1bit 	| Q learning                   	| 0.54   	| 1.0   	|
+|      	| Deep q-learning              	| 0.57   	| 5.0   	|
+|      	| Proximal policy Optimization 	| 0.46   	| 6.09  	|
+|      	| Evolutionary Strategy        	| 0.58   	| 4.36  	|
+| 2bit 	| Q-learning                   	| 0.48   	| 1.0   	|
+|      	| Deep q-learning              	| 0.55   	| 5.0   	|
+|      	| Proximal policy Optimization 	| 0.46   	| 6.09  	|
+|      	| Evolutionary Strategy        	| 0.54   	| 4.68  	|
+| 3bit 	| Q-learning                   	| 0.4    	| 4.61  	|
+|      	| Deep q-learning              	| 0.48   	| 6.0   	|
+|      	| Proximal policy Optimization 	| 0.49   	| 5.76  	|
+|      	| Evolutionary Strategy        	| 0.52   	| 4.84  	|
+| 4bit 	| Q-learning                   	| 0.5    	| 1.0   	|
+|      	| Deep q-learning              	| 0.47   	| 5.0   	|
+|      	| Proximal Policy Optimization 	| 0.59   	| 5.17  	|
+|      	| Evolutionary Strategy        	| 0.46   	| 5.32  	|
