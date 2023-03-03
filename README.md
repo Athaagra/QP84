@@ -43,3 +43,12 @@ Quantum channel es: 1bit:1.0 2bit:0.84 3bit:0.35 4bit:0.05</p>
 |      	| Deep q-learning              	| 0.47   	| 5.0   	|
 |      	| Proximal Policy Optimization 	| 0.59   	| 5.17  	|
 |      	| Evolutionary Strategy        	| 0.46   	| 5.32  	|
+
+
+
+|                              | 1bit |     | 2bit |   | 3bit |   | 4bit |   |
+|------------------------------|:----:|-----|:----:|---|:----:|---|:----:|---|
+| Q-learning                   | 0.51 | 6   | 0.23 | 8 | 0.1  | 8 | 0.06 | 9 |
+| DQN                          | 0.5  | 5   | 0.49 | 6 | 0.47 | 5 | 0.5  | 5 |
+| Proximal Policy Optimization | 0.55 | 5.5 | 0.30 | 7 | 0.11 | 8 | 0.04 | 9 |
+| Evolutionary Strategy        | 0.53 | 6   | 0.23 | 7 | 0    | 9 | 0    | 9 |
