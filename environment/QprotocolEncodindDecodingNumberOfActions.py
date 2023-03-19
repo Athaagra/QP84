@@ -25,6 +25,7 @@ import numpy as np
 class Qprotocol:
      def __init__(self,maxm,inp,MultiAgent=False):
          self.max_moves = maxm
+         self.inpt=inp
          if MultiAgent==True:
              self.data1=inp
              self.data0=np.random.randint(0,2,len(inp))
@@ -309,11 +310,31 @@ class Qprotocol:
      def reset(self,maxm):
          import numpy as np
          self.max_moves = maxm
+         if self.data0==[]:
+             self.data0=np.random.randint(0,2,self.inpt)
+             self.data1 = np.random.randint(0,2,self.inpt)
+             self.data2 = np.random.randint(0,2,self.inpt)
+         #if self.data0==[]:
+         #    print('False')
+         #    print('This is the data1 {}'.format(self.data1))
+         #    self.data1=np.random.randint(0,2,self.inpt)
+         #    self.data0=np.random.randint(0,2,self.inpt)
+         else:
+             self.data1=self.data1
+             self.data2=self.data2
+             self.data0=self.data0
          # State for alice
-         print('This is the type of data {}'.format(type(self.data1)))
+         #print('This is the type of data {}'.format(type(self.data1)))
+         print('This is data1 {} and data0 {}'.format(self.data1,self.data0))
          if isinstance(self.data1, list)!=True:
-                 self.data1=[self.data1]
+             self.data1=[self.data1]
+         else:
+             self.data0=self.data1
+         #if self.data0 in [0] or self.data0 in [1]:
+         #   self.data1=self.data1(0,2,self.inpt)
+         #   self.data0=self.data0(0,2,self.inpt)
          #print('this is the bitstring message {} and the target message {}'.format(self.data0,self.data1))
+         
          z=[self.data1[i]==self.data0[i] for i in range(len([self.data1]))]
          z=np.array(z)
          if z.all():
