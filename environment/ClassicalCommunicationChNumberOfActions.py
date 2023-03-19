@@ -1,32 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jan 23 17:15:59 2023
-
-@author: Optimus
-"""
-
-"""
-Created on Fri Nov 18 00:55:15 2022
-@author: Optimus
-"""
-
-import numpy as np
-from itertools import count
-import matplotlib.pyplot as plt
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
-import scipy.signal 
-import sys
-
-#temp = sys.stdout                 # store original stdout object for later
-#sys.stdout = open('log.txt', 'w')
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
 Created on Fri Jan 20 20:46:53 2023
-
 @author: Optimus
 """
 """
@@ -47,45 +22,7 @@ The environment for Level1
 # """
 import numpy as np
 class Qprotocol:
-     def encoded(data0,q):
-         chars="XZ"
-         basesender=np.random.randint(0,2,q)
-         senderFilter=[chars[i] for i in basesender]
-         data1=[]
-         for i in range(0,len(data0)):
-             if data0[i]==0 and senderFilter[i]=="Z":
-                 data1.append('0')
-             if data0[i]==1 and senderFilter[i]=="Z":
-                 data1.append('1')
-             if data0[i]==0 and senderFilter[i]=="X":
-                 data1.append('+')
-             if data0[i]==1 and senderFilter[i]=="X":
-                 data1.append('-')
-         return np.array(data1)
-     def decoded(data1,q):
-         chars="XZ"
-         basereciever=np.random.randint(0,2,q)
-         recieverFilter=[chars[i] for i in basereciever]
-         data2=[]
-         for i in range(0,len(data1)):
-             if data1[i]=="0" and recieverFilter[i]=="Z":
-                 data2.append(0)
-             if data1[i]=="1" and recieverFilter[i]=="Z":
-                 data2.append(1)
-             if data1[i]=="0" and recieverFilter[i]=="X":
-                 data2.append(0)
-             if data1[i]=="1" and recieverFilter[i]=="X":
-                 data2.append(1)
-             if data1[i]=="+" and recieverFilter[i]=="X":
-                 data2.append(0)
-             if data1[i]=="-" and recieverFilter[i]=="X":
-                 data2.append(1)
-             if data1[i]=="+" and recieverFilter[i]=="Z":
-                 data2.append(np.random.randint(0,2,1)[0])
-             if data1[i]=="-" and recieverFilter[i]=="Z":
-                 data2.append(np.random.randint(0,2,1)[0])
-         return np.array(data2)
-     def __init__(self,maxm,inp,encode=encoded,decode=decoded,Qb=False,MultiAgent=False):
+     def __init__(self,maxm,inp,MultiAgent=False):
          self.max_moves = maxm
          if MultiAgent==True:
              self.data1=inp
@@ -95,13 +32,6 @@ class Qprotocol:
              self.data0=np.random.randint(0,2,inp)
              self.data1 = np.random.randint(0,2,inp)
              self.data2 = np.random.randint(0,2,inp)
-         if Qb==True:
-             self.data0=encode(self.data1,len(self.data1))
-         #print(self.data0)
-             self.data2=decode(self.data0,len(self.data0))
-         ####Classical Channel
-         else:
-             self.data2=self.data1
          # State for alice
          #self.data1 = np.random.randint(0,2,2)
          #self.data2 = np.random.randint(0,2,2)
@@ -143,16 +73,12 @@ class Qprotocol:
          if( action_alice == 1 ):
              if( self.alice_data_counter >= len(self.data1) ):
                  if verbose:
-                     print('')
-                     #print("Alice tried to read more bits than available")
+                     print("Alice tried to read more bits than available")
                  else:
-                     print('This the input message data1 {}'.format(self.data1))
                      self.alice_datalog.append(self.data1[self.alice_data_counter])
-                     print('This is alice datalog:{}'.format(self.alice_datalog))
                      self.alice_data_counter += 1
                  if verbose:
-                     print('')
-                     #print("Alice added data1 to the datalog ", self.alice_datalog)
+                     print("Alice added data1 to the datalog ", self.alice_datalog)
      # Send datalog to Bob's mailbox
          if( action_alice == 2 ):
              self.bob_mailbox = self.alice_datalog
@@ -164,14 +90,12 @@ class Qprotocol:
              if self.bob_mailbox:
                  if( self.bob_data_counter >= len(self.bob_mailbox) ):
                      if verbose:
-                         print('')
-                         #print("Bob tried to read more bits than available")
+                         print("Bob tried to read more bits than available")
                      else:
                          self.bob_datalog[self.bob_data_counter % len(self.bob_datalog)] = self.bob_mailbox[self.bob_data_counter]
                          self.bob_data_counter += 1
          if verbose:
-             print('')
-             #print("Bob added to his datalog ", self.bob_datalog)
+             print("Bob added to his datalog ", self.bob_datalog)
              # Add 0 to key - Bob should decide to take this action based on his datalog
          if( action_bob == 2 ):
              self.bob_key.append(0)
@@ -226,10 +150,6 @@ class Qprotocol:
          import numpy as np
          self.max_moves = maxm
          # State for alice
-         #self.data0=np.random.randint(0,2,2)
-         #self.data1 = np.random.randint(0,2,2)
-         #print('this is the bitstring message {} and the target message {}'.format(self.data1,self.data2))
-         #self.data1=self.data1#np.array(np.random.randint(0,2,inputm))
          z=[self.data1[i]==self.data2[i] for i in range(len(self.data1))]
          z=np.array(z)
          if z.all():
