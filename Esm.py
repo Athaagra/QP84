@@ -469,3 +469,43 @@ def simulationev(inpa,bp,qp,ma):
     results.append(['Reward:'+str(solved/episodes),'Cumulative:'+str(cum_re[-1]),'Steps:'+str(np.mean(steps_epi)),'Fidelity:'+str(sum(total_fidelity))])
     print('Those are the actions made {}'.format(actions_made_list))
     return results,actions_made_list
+
+onemodE,r=evol_strategy(1,False,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomOneBitsEsTraining.txt','w'))
+twomodE,r=evol_strategy(2,False,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomTwoBitsEsTraining.txt','w'))
+threemodE,r=evol_strategy(3,False,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomThreeBitsEsTraining.txt','w'))
+fourmodE,r=evol_strategy(4,False,False,sigma_parameter=0.99,learning_rate=1e-5,number_of_iterations=100)
+print(r,file=open('randomFourBitsEsTraining.txt','w'))
+
+def actli(actis):
+    thd=[]
+    actis=np.array(actis)
+    for i in range(0,len(actis)):
+        thd.append([actis[i][0],actis[i][1],i])
+    thd=np.array(thd)
+    fig = plt.figure(figsize=(12, 12))
+    ax = fig.add_subplot(projection='3d')
+    
+    ax.scatter(thd[:,0], thd[:,1], thd[:,2])
+    plt.show()
+
+
+
+r,sav_actions=simulationev(1,onemodE,False,False)
+print(r,file=open('randomOneBitsEsTesting.txt','w'))
+sav_actions=[actions_list[i] for i in sav_actions]
+actli(sav_actions)
+r,sav_actions=simulationev(2,twomodE,False,False)
+print(r,file=open('randomTwoBitsEsTesting.txt','w'))
+sav_actions=[actions_list[i] for i in sav_actions]
+actli(sav_actions)
+r,sav_actions=simulationev(3,threemodE,False,False)
+print(r,file=open('randomThreeBitsEsTesting.txt','w'))
+sav_actions=[actions_list[i] for i in sav_actions]
+actli(sav_actions)
+r,sav_actions=simulationev(4,fourmodE,False,False)
+print(r,file=open('randomFourBitsEsTesting.txt','w'))
+sav_actions=[actions_list[i] for i in sav_actions]
+actli(sav_actions)
