@@ -274,7 +274,7 @@ def proximalpo(inpu,ac,cr,ma):
                 num_episodes += 1
                 cumre+=reward
                 cum.append(cumre)
-                state,inp=env.reset(4)
+                state,inp=env.reset(8)
                 observation=np.array(state[0]) 
                 episode_return=0
                 episode_length = 0
@@ -497,64 +497,6 @@ def pposimulation(inpu,ac,ma):
     return results,actions_made_list
 
 
-# Hyperparameters of the PPO algorithm
-gamma = 0.001
-clip_ratio = 0.01
-policy_learning_rate = 1e-11
-value_function_learning_rate = 1e-11
-train_policy_iterations = 200
-train_value_iterations = 200
-lam = 0.97
-target_kl = 0.01
-hidden_sizes = (16, 16)
-
-# True if you want to render the environment
-render = False
-
-# Initialize the environment and get the dimensionality of the
-# Initialize the observation, episode return and episode length
-#observation, episode_return, episode_length = env.reset(), 0, 0
-# Iterate over the number of epochs
-LogicalStates=np.array([[1,0],[0,1]])
-LogicalStates2bit=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
-LogicalStates3bit=np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
-LogicalStates4bit=np.array([[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]])
-import pandas as pd
-columns2bit=['00','01','10','11']
-columns3bit=['000','001','010','011','100','101','110','111']
-columns4bit=['0000','0001','0010','0011','0100','0101','0110','0111','1000','1001','1010','1011','1100','1101','1110','1111']
-LogicalStates2bit=pd.DataFrame(LogicalStates2bit, columns=columns2bit)
-LogicalStates3bit=pd.DataFrame(LogicalStates3bit, columns=columns3bit)
-LogicalStates4bit=pd.DataFrame(LogicalStates4bit, columns=columns4bit)
-LogicalStates2bit=LogicalStates2bit.rename(index={0:'00',1:'01',2:'10',3:'11'})
-LogicalStates3bit=LogicalStates3bit.rename(index={0:'000',1:'001',2:'010',3:'011',4:'100',5:'101',6:'110',7:'111'})
-LogicalStates4bit=LogicalStates4bit.rename(index={0:'0000',1:'0001',2:'0010',3:'0011',4:'0100',5:'0101',6:'0110',7:'0111',8:'1000',9:'1001',10:'1010',11:'1011',12:'1100',13:'1101',14:'1110',15:'1111'})
-def mannwhitney(total_episodes,error):
-    from scipy.stats import mannwhitneyu
-    # seed the random number generator
-    resultss=[]
-    if sum(total_episodes)!=sum(error):
-        stat, pvalue = mannwhitneyu(total_episodes, error)
-        print('Statistics=%.3f, p=%.3f' % (stat, pvalue))
-        # interpret
-        if pvalue > 0.05:
-            print('We accept the null hypothesis')
-            resultss.append(['Qlearning p-value We accept the null hypothesis:',pvalue])
-        else:
-            print("The p-value is less than we reject the null hypothesis")
-            resultss.append(['Qlearning p-value the p-value is less than we reject the null hypothesis:',pvalue])
-    else:
-        print('identical')
-        pvalue=0
-    import matplotlib.pyplot as plt
-    plt.figure(figsize=(13, 13))
-    plt.bar(1,pvalue)
-    plt.xlabel(f'Mannwhitney Test')
-    plt.ylabel('Probability')
-    plt.title(str(resultss))#.format(solved/EPISODES))
-    plt.grid(True,which="both",ls="--",c='gray')
-    plt.show()
-    return resultss
 def proximalpo(inpu,ac,cr,ma):
     epochs = 100
     steps_ep=[]
