@@ -1,0 +1,14 @@
+#Python Requirements
+
+# You can install all of these requirements with the following shell command
+# python -m pip install -r requirements.txt
+
+#numpy
+requests==2.18.4
+#grpcio-tool==1.30.0
+#msgpack==1.0.0
+#protobuf==3.18.3
+#PyYAML==5.4
+
+#You will also need the protoc compiler from
+#https://developers.google.com/protocol-buffers/docs/downloads

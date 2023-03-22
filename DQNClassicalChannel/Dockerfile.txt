@@ -1,0 +1,6 @@
+FROM python:3.9-slim
+RUN pip install requests
+WORKDIR /usr/src/app
+COPY server.py ./
+EXPOSE 4004/tcp
+CMD python server.py
